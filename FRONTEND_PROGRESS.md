@@ -15,10 +15,10 @@
 | **3. AI Chatbot** | **Complete** | Approved (Ref #3) | Ready | 3-column staff inbox (Conversations, Chat feed with product cards, Lead context). Floating customer concierge widget with verified store policies and staff handover. |
 | **4. Lead Generation** | **Complete** | Approved (Ref #4) | Ready | 6-stage Kanban board (`New`, `Contacted`, `Qualified`, `Follow-up`, `Converted`, `Lost`), Table view toggle, Search/Branch filters, Docked Lead Details panel, Add Lead modal. |
 | **5. Customer Database** | **Complete** | Approved (Ref #5) | Ready | Compact header, 4 status tabs (`All`, `New`, `Active`, `Inactive`), horizontal search/filters, dense customer table, docked Customer Details panel, Purchase Summary card, Petpooja POS CSV import wizard, Add Customer modal. |
-| **6. WhatsApp Campaigns** | **Complete** | Standardized | Ready | 4-step campaign creator with independent B1–B4 branch toggles, strict DPDP consent audience calculator, Meta template selection, simulated dispatch scheduling. |
+| **6. WhatsApp Campaigns** | **Complete** | Standardized | Ready | 3 subtabs (`Broadcast Campaigns`, `Meta Templates`, `DPDP Consent & Suppression`), `CampaignDetailsModal` log inspector, 4-step wizard, branch toggles, simulated dispatch. |
 | **7. Reports & Analytics** | **Complete** | Standardized | Ready | Dynamic conversion KPIs, customer conversion funnel, branch benchmarking, 3 structured CSV downloads (Leads, Campaigns, Consent Audit). |
 | **8. Users & Branches** | **Complete** | Standardized | Ready | 4 configurable branches (B1 Rajahmundry confirmed + B2–B4 slots), branch status toggles, in-line editor, RBAC user directory table. |
-| **9. Settings & Knowledge** | **Complete** | Standardized | Ready | Verified FAQ knowledge base management, WhatsApp Cloud API & Petpooja connector status, demo data reset utility. |
+| **9. Settings & Administration** | **Complete** | Standardized | Ready | 5 tabs (`Branches`, `Users & Roles`, `Knowledge Base`, `WhatsApp & API Services`, `System Audit Log`), demo data reset utility. |
 
 ---
 
@@ -41,8 +41,13 @@
   - Dense customer table with checkboxes, phone, branch, consent pills, and 3-dots menu.
   - Docked right Customer Details panel with `Purchase Summary` card.
   - Numbered bottom pagination bar.
+- **Preservation Invariant**: Kept 100% stable, fully functional, and undisturbed.
 
-### 4. Backend Service Contracts & Handoff Readiness
+### 4. Claude Reference vs. Phase 1 Scope Comparison
+- **Completed**: Authored exhaustive comparative architectural document in `docs/RETAIL_SCOPE_COMPARISON.md`.
+- **Excluded Modules Formally Delineated**: Point-of-Sale (POS) Billing Register, Invoices & Returns, Inventory & Catalogue, Stock Transfers & Ledger, Financial Accounting & Day-End Closing are documented as external to Phase 1 (managed authoritatively by Petpooja POS).
+
+### 5. Backend Service Contracts & Handoff Readiness
 - **Completed**: Full documentation of provisional REST API contracts, data models, JWT/RBAC security, DPDP compliance, and mock-to-live migration checklist delivered in `docs/BACKEND_HANDOFF.md`.
 - **Decoupled Architecture**: All frontend components interact exclusively with `src/services/`, ensuring zero breaking changes when switching `VITE_USE_MOCKS=false`.
 
@@ -56,5 +61,5 @@
   2. Chat message -> "Create Lead" CTA -> Lead generated in `mockStorage`.
   3. Lead Kanban -> Drag-and-drop between 6 stages -> Dashboard KPI & Reports funnel updated.
   4. Customer Database -> Petpooja POS CSV upload / Add Customer -> Deduplication & DPDP consent validation -> Instant reflection in table and docked Purchase Summary.
-  5. WhatsApp Campaigns -> Branch audience filter -> Meta template selection -> Simulated dispatch.
-  6. Administration -> Branch details inline editing, User role management, Knowledge base FAQ updates.
+  5. WhatsApp Campaigns -> 3 Subtabs (Broadcasts, Templates, Consent) -> `CampaignDetailsModal` log inspector -> 4-Step Wizard.
+  6. Administration -> 5 Subtabs (Branches, Users, Knowledge, Services, System Audit Log with search and branch filter).

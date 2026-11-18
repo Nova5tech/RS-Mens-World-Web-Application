@@ -25,6 +25,8 @@ Per the Product Requirement Document (PRD), the Phase 1 MVP is strictly restrict
 > [!CAUTION]
 > **Strict Out-of-Scope Enforcement:**  
 > The backend team must **NOT** implement Point-of-Sale (POS) cash registers, barcode checkout, inventory stock management, warehouse logistics, stock transfers, billing/invoicing, or accounting in Phase 1. Petpooja remains the authoritative billing system; RS Mens World only imports customer contact records for marketing and engagement.
+> 
+> For an exhaustive line-by-line comparison between the Claude reference prototype (`docs/design.html`) and Phase 1 PRD boundaries, refer to [RETAIL_SCOPE_COMPARISON.md](./RETAIL_SCOPE_COMPARISON.md).
 
 ---
 
@@ -413,6 +415,49 @@ Creates and schedules a new broadcast campaign.
 }
 ```
 
+#### `GET /api/campaigns/templates`
+Returns Meta pre-approved template definitions and variables.
+
+**Response `200 OK`:**
+```json
+[
+  {
+    "id": "tpl_wedding_grooms_2026",
+    "name": "Grooms Wedding Special 2026",
+    "category": "MARKETING",
+    "language": "en_IN",
+    "status": "APPROVED",
+    "bodyText": "Namaste {{1}}! Wedding season is here at RS Mens World...",
+    "variables": ["{{1}} = Customer Name", "{{2}} = Branch Store", "{{3}} = Offer Discount"]
+  }
+]
+```
+
+#### `GET /api/campaigns/consent-summary`
+Returns DPDP consent registry statistics and suppressed customer records.
+
+**Response `200 OK`:**
+```json
+{
+  "totalCustomers": 2486,
+  "optedInCount": 2326,
+  "optedInPercentage": "93.6%",
+  "suppressedCount": 160,
+  "suppressedPercentage": "6.4%",
+  "suppressedRecords": [
+    {
+      "id": "SUP-01",
+      "mobile": "+91 90000 67890",
+      "name": "Arjun Reddy",
+      "branch": "B3",
+      "reason": "No consent recorded on Petpooja POS invoice",
+      "status": "Suppressed",
+      "date": "2026-11-16T12:00:00Z"
+    }
+  ]
+}
+```
+
 ---
 
 ### 4.6 Reports & Analytics
@@ -436,6 +481,47 @@ Returns aggregate KPI cards and conversion metrics.
     { "branchId": "B3", "name": "Madhapur", "leads": 130, "converted": 28 },
     { "branchId": "B4", "name": "Gachibowli", "leads": 84, "converted": 16 }
   ]
+}
+```
+
+---
+
+### 4.7 System Audit Trail
+
+#### `GET /api/audit?branchId={B1|ALL}&search={query}`
+Returns historical audit entries for staff logins, customer imports, campaign dispatches, and lead updates.
+
+**Response `200 OK`:**
+```json
+[
+  {
+    "id": "aud-101",
+    "date": "2026-11-18T10:30:00Z",
+    "user": "Super Admin",
+    "branch": "ALL",
+    "action": "Campaign Scheduled",
+    "detail": "Scheduled \"Grooms Wedding Season Special\" for B1, B2 (2,840 recipients)"
+  },
+  {
+    "id": "aud-102",
+    "date": "2026-11-18T09:45:00Z",
+    "user": "Branch 1 User",
+    "branch": "B1",
+    "action": "Lead Created",
+    "detail": "Captured new lead Rohit Verma (Wedding Wear) from WhatsApp chat"
+  }
+]
+```
+
+#### `POST /api/audit`
+Records a new operational event.
+**Request Body:**
+```json
+{
+  "user": "Super Admin",
+  "branch": "B1",
+  "action": "Petpooja Import",
+  "detail": "Imported 12 customer records from Petpooja POS invoice report"
 }
 ```
 

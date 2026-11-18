@@ -15,6 +15,9 @@ import {
   X,
   ExternalLink,
   Smartphone,
+  History,
+  Search,
+  Clock,
 } from 'lucide-react';
 import { useBranch } from '../context/BranchContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -22,6 +25,8 @@ import { useToast } from '../context/ToastContext.jsx';
 import { mockStorage } from '../mocks/mockStorage.js';
 import { branchService } from '../services/branchService.js';
 import { authService } from '../services/authService.js';
+import { auditService } from '../services/auditService.js';
+import { formatDateTime } from '../utils/formatters.js';
 
 export default function SettingsPage() {
   const { branches, reloadBranches } = useBranch();
@@ -31,14 +36,14 @@ export default function SettingsPage() {
 
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(
-    tabParam && ['branches', 'users', 'knowledge', 'integration'].includes(tabParam)
+    tabParam && ['branches', 'users', 'knowledge', 'integration', 'audit'].includes(tabParam)
       ? tabParam
       : 'branches'
   );
 
   useEffect(() => {
     const currentParam = searchParams.get('tab');
-    if (currentParam && ['branches', 'users', 'knowledge', 'integration'].includes(currentParam)) {
+    if (currentParam && ['branches', 'users', 'knowledge', 'integration', 'audit'].includes(currentParam)) {
       setActiveTab(currentParam);
     }
   }, [searchParams]);
@@ -47,10 +52,32 @@ export default function SettingsPage() {
     setActiveTab(newTab);
     setSearchParams({ tab: newTab });
   };
+
   const [editingBranchId, setEditingBranchId] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', phone: '', hours: '', address: '' });
   const [knowledgeBase, setKnowledgeBase] = useState(() => mockStorage.getKnowledgeBase());
   const [demoAccounts] = useState(() => authService.getDemoAccounts());
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditBranchFilter, setAuditBranchFilter] = useState('ALL');
+  const [auditSearch, setAuditSearch] = useState('');
+
+  const loadAuditLogs = async () => {
+    try {
+      const logs = await auditService.getAuditLogs({
+        branchId: auditBranchFilter,
+        search: auditSearch,
+      });
+      setAuditLogs(logs);
+    } catch (err) {
+      console.error('Failed to load audit logs:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      loadAuditLogs();
+    }
+  }, [activeTab, auditBranchFilter, auditSearch]);
 
   const handleStartEdit = branch => {
     setEditingBranchId(branch.id);
@@ -122,11 +149,10 @@ export default function SettingsPage() {
       <div className="p-1.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-1 overflow-x-auto">
         <button
           onClick={() => handleTabChange('branches')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'branches'
-              ? 'bg-[#0f766e] text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'branches'
+            ? 'bg-[#0f766e] text-white shadow-2xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
         >
           <Store className="w-4 h-4" />
           <span>Store Branches ({branches.length})</span>
@@ -134,11 +160,10 @@ export default function SettingsPage() {
 
         <button
           onClick={() => handleTabChange('users')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'users'
-              ? 'bg-[#0f766e] text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'users'
+            ? 'bg-[#0f766e] text-white shadow-2xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
         >
           <Users className="w-4 h-4" />
           <span>Users & Roles ({demoAccounts.length})</span>
@@ -146,11 +171,10 @@ export default function SettingsPage() {
 
         <button
           onClick={() => handleTabChange('knowledge')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'knowledge'
-              ? 'bg-[#0f766e] text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'knowledge'
+            ? 'bg-[#0f766e] text-white shadow-2xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
         >
           <BookOpen className="w-4 h-4" />
           <span>AI Knowledge Base ({knowledgeBase.length})</span>
@@ -158,14 +182,24 @@ export default function SettingsPage() {
 
         <button
           onClick={() => handleTabChange('integration')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'integration'
-              ? 'bg-[#0f766e] text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'integration'
+            ? 'bg-[#0f766e] text-white shadow-2xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
         >
           <Server className="w-4 h-4" />
           <span>WhatsApp & API Services</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('audit')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'audit'
+            ? 'bg-[#0f766e] text-white shadow-2xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+        >
+          <History className="w-4 h-4" />
+          <span>System Audit Log</span>
         </button>
       </div>
 
@@ -204,11 +238,10 @@ export default function SettingsPage() {
 
                     <button
                       onClick={() => handleToggleBranch(branch.id, branch.enabled)}
-                      className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                        branch.enabled
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                          : 'bg-slate-100 text-slate-400 border-slate-200'
-                      }`}
+                      className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${branch.enabled
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                        : 'bg-slate-100 text-slate-400 border-slate-200'
+                        }`}
                     >
                       {branch.enabled ? 'Active Store' : 'Inactive'}
                     </button>
@@ -319,9 +352,8 @@ export default function SettingsPage() {
                     <tr key={acc.id} className="hover:bg-[#f0f7f5]/40 transition-colors">
                       <td className="p-4 font-bold text-slate-900 flex items-center gap-2.5">
                         <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
-                            isAdminAcc ? 'bg-[#06332b] text-[#48d597]' : 'bg-[#e6f7f2] text-[#008C83]'
-                          }`}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${isAdminAcc ? 'bg-[#06332b] text-[#48d597]' : 'bg-[#e6f7f2] text-[#008C83]'
+                            }`}
                         >
                           {acc.name.charAt(0)}
                         </div>
@@ -332,11 +364,10 @@ export default function SettingsPage() {
                       </td>
                       <td className="p-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                            isAdminAcc
-                              ? 'bg-[#062b24] text-[#48d597]'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200/80'
-                          }`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${isAdminAcc
+                            ? 'bg-[#062b24] text-[#48d597]'
+                            : 'bg-blue-50 text-blue-700 border border-blue-200/80'
+                            }`}
                         >
                           <Shield className="w-3 h-3" />
                           {isAdminAcc ? 'Super Administrator' : 'Branch Staff / Cashier'}
@@ -464,6 +495,7 @@ export default function SettingsPage() {
                   { method: 'POST', endpoint: '/api/customers/import/confirm' },
                   { method: 'GET/POST', endpoint: '/api/campaigns' },
                   { method: 'GET', endpoint: '/api/reports/kpis' },
+                  { method: 'GET', endpoint: '/api/audit' },
                 ].map(ep => (
                   <div key={ep.endpoint + ep.method} className="p-3 flex items-center justify-between hover:bg-slate-50">
                     <div className="flex items-center gap-3">
@@ -477,6 +509,100 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: System Audit Trail Log */}
+      {activeTab === 'audit' && (
+        <div className="space-y-4">
+          <div className="p-3.5 bg-[#f0f9f7] rounded-2xl border border-[#D9E9E8] text-xs text-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span>
+              Real-time audit log recording staff logins, campaign dispatches, lead pipeline updates, customer imports, and store profile edits across all 4 branches.
+            </span>
+            <span className="font-bold text-[#008C83] shrink-0">
+              {auditLogs.length} Events Logged
+            </span>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:w-72">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search actions, users, or details..."
+                value={auditSearch}
+                onChange={e => setAuditSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-[#f8fbfb] border border-slate-200 rounded-xl text-xs outline-none focus:border-[#008C83]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-xs text-slate-500 font-medium">Branch:</span>
+              <select
+                value={auditBranchFilter}
+                onChange={e => setAuditBranchFilter(e.target.value)}
+                className="px-3 py-1.5 bg-[#f8fbfb] border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+              >
+                <option value="ALL">All Branches</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Audit Log Table */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-[#f8fbfb] border-b border-slate-200 text-slate-500 font-semibold text-[11px]">
+                <tr>
+                  <th className="py-3 px-4">When</th>
+                  <th className="py-3 px-4">User</th>
+                  <th className="py-3 px-4">Branch</th>
+                  <th className="py-3 px-4">Action</th>
+                  <th className="py-3 px-4">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {auditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-400">
+                      No audit events match the search filter.
+                    </td>
+                  </tr>
+                ) : (
+                  auditLogs.map(log => {
+                    let actionBadge = 'bg-slate-100 text-slate-700';
+                    if (log.action.includes('Campaign')) actionBadge = 'bg-blue-50 text-blue-700 border border-blue-200';
+                    else if (log.action.includes('Lead')) actionBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                    else if (log.action.includes('Import')) actionBadge = 'bg-purple-50 text-purple-700 border border-purple-200';
+                    else if (log.action.includes('Sign In')) actionBadge = 'bg-teal-50 text-teal-700 border border-teal-200';
+
+                    return (
+                      <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px] whitespace-nowrap">
+                          {formatDateTime(log.date)}
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900">{log.user}</td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-semibold text-slate-700">
+                            {log.branch === 'ALL' ? 'All Branches' : log.branch}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${actionBadge}`}>
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-600 max-w-md">{log.detail}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
