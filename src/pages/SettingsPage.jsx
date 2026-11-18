@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Store,
   BookOpen,
@@ -26,8 +27,26 @@ export default function SettingsPage() {
   const { branches, reloadBranches } = useBranch();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('branches');
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    tabParam && ['branches', 'users', 'knowledge', 'integration'].includes(tabParam)
+      ? tabParam
+      : 'branches'
+  );
+
+  useEffect(() => {
+    const currentParam = searchParams.get('tab');
+    if (currentParam && ['branches', 'users', 'knowledge', 'integration'].includes(currentParam)) {
+      setActiveTab(currentParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    setSearchParams({ tab: newTab });
+  };
   const [editingBranchId, setEditingBranchId] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', phone: '', hours: '', address: '' });
   const [knowledgeBase, setKnowledgeBase] = useState(() => mockStorage.getKnowledgeBase());
@@ -102,7 +121,7 @@ export default function SettingsPage() {
       {/* Tabs Navigation */}
       <div className="p-1.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-1 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('branches')}
+          onClick={() => handleTabChange('branches')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'branches'
               ? 'bg-[#0f766e] text-white shadow-2xs'
@@ -114,7 +133,7 @@ export default function SettingsPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('users')}
+          onClick={() => handleTabChange('users')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'users'
               ? 'bg-[#0f766e] text-white shadow-2xs'
@@ -126,7 +145,7 @@ export default function SettingsPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('knowledge')}
+          onClick={() => handleTabChange('knowledge')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'knowledge'
               ? 'bg-[#0f766e] text-white shadow-2xs'
@@ -138,7 +157,7 @@ export default function SettingsPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('integration')}
+          onClick={() => handleTabChange('integration')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'integration'
               ? 'bg-[#0f766e] text-white shadow-2xs'

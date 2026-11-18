@@ -50,7 +50,7 @@ export default function Sidebar({ onClose }) {
     {
       title: 'ADMINISTRATION',
       items: [
-        { to: '/settings', label: 'Users & Branches', icon: Shield, adminOnly: true },
+        { to: '/settings?tab=users', label: 'Users & Branches', icon: Shield, adminOnly: true },
         { to: '/settings', label: 'Settings', icon: Settings, adminOnly: true },
       ],
     },

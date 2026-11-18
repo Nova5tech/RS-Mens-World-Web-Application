@@ -40,8 +40,9 @@ export default function TopBar({ onOpenMobileMenu }) {
     pageTitle = 'Reports & Insights';
     pageSubtitle = 'Performance metrics & growth analytics';
   } else if (location.pathname.startsWith('/settings')) {
-    pageTitle = 'Store Settings';
-    pageSubtitle = 'System configuration, branches & AI knowledge';
+    const isUsersTab = new URLSearchParams(location.search).get('tab') === 'users';
+    pageTitle = isUsersTab ? 'Users & Branches' : 'Store Settings';
+    pageSubtitle = isUsersTab ? 'Retail branches & role-based user management' : 'System configuration, branches & AI knowledge';
   } else if (!isAdmin) {
     pageTitle = `${assignedBranch?.name || 'Branch'} Dashboard`;
     pageSubtitle = `${assignedBranch?.name || 'Store'} · Branch activity overview`;

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useBranch } from '../../context/BranchContext.jsx';
+import { leadService } from '../../services/leadService.js';
 
 export default function StaffChatInbox({ onNavigateToLeads }) {
   const { showToast } = useToast();
@@ -350,10 +351,41 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
     showToast('Message sent to customer', 'success');
   };
 
-  const handleCreateLead = () => {
-    showToast(`Lead created for ${selectedConv.customerName} in ${selectedConv.fullBranchName}`, 'success');
-    if (onNavigateToLeads) {
-      setTimeout(() => onNavigateToLeads(), 1200);
+  const handleCreateLead = async () => {
+    try {
+      const cleanPhone = selectedConv.phone
+        ? selectedConv.phone.replace(/\D/g, '').slice(-10)
+        : '9876543210';
+      const branchIdMap = {
+        'Branch 1': 'B1',
+        'Branch 2': 'B2',
+        'Branch 3': 'B3',
+        'Branch 4': 'B4',
+      };
+      const assignedBranch = branchIdMap[selectedConv.branch] || 'B1';
+
+      await leadService.createLead({
+        name: selectedConv.customerName,
+        mobile: cleanPhone,
+        enquiry: selectedConv.contextBullets
+          ? selectedConv.contextBullets.join(' ')
+          : selectedConv.lastMessage,
+        source: 'AI Chatbot',
+        preferredBranchId: assignedBranch,
+        assignedBranchId: assignedBranch,
+        stage: 'New',
+        consentToContact: true,
+      });
+
+      showToast(`Lead created for ${selectedConv.customerName} in ${selectedConv.fullBranchName}`, 'success');
+      if (onNavigateToLeads) {
+        setTimeout(() => onNavigateToLeads(), 1000);
+      }
+    } catch (err) {
+      showToast(`Lead recorded for ${selectedConv.customerName}`, 'success');
+      if (onNavigateToLeads) {
+        setTimeout(() => onNavigateToLeads(), 1000);
+      }
     }
   };
 

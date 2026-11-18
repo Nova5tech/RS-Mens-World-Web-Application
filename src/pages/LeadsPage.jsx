@@ -190,48 +190,107 @@ export default function LeadsPage({ isAddModalOpen: propIsAddOpen, setIsAddModal
 
   const [leads, setLeads] = useState(initialLeads);
 
+  // Load persisted leads from leadService and merge with reference dataset
+  useEffect(() => {
+    async function syncLeads() {
+      try {
+        const storedLeads = await leadService.getLeads({ branchId: effectiveBranchId });
+        if (storedLeads && storedLeads.length > 0) {
+          // Normalize stored leads into table/kanban shape
+          const mappedStored = storedLeads.map(l => ({
+            id: l.id,
+            name: l.name,
+            enquiry: l.enquiry,
+            stage: l.stage,
+            branchLabel: l.preferredBranchId === 'B2' ? 'Branch 2' : l.preferredBranchId === 'B3' ? 'Branch 3' : l.preferredBranchId === 'B4' ? 'Branch 4' : 'Branch 1',
+            preferredBranchId: l.preferredBranchId || 'Branch 1 (Anna Nagar)',
+            mobile: l.mobile,
+            aiCategory: l.aiCategory || 'General Enquiry',
+            timeAgo: 'Recently',
+            followUpDateFormatted: l.followUpDate ? l.followUpDate.slice(0, 10) : 'Nov 20, 2025',
+          }));
+
+          // Deduplicate by ID
+          const existingIds = new Set(mappedStored.map(m => m.id));
+          const remainingInitial = initialLeads.filter(init => !existingIds.has(init.id));
+          setLeads([...mappedStored, ...remainingInitial]);
+        }
+      } catch (err) {
+        console.error('Failed to sync leads from service:', err);
+      }
+    }
+    syncLeads();
+  }, [effectiveBranchId]);
+
   // Set Priya Sharma as default selected lead matching screenshot
   useEffect(() => {
     if (!selectedLead && leads.length > 0) {
       const priya = leads.find(l => l.name === 'Priya Sharma');
       if (priya) setSelectedLead(priya);
+      else setSelectedLead(leads[0]);
     }
   }, [leads]);
 
-  const handleStageChange = (leadId, newStage) => {
+  const handleStageChange = async (leadId, newStage) => {
     setLeads(prev =>
       prev.map(l => (l.id === leadId ? { ...l, stage: newStage } : l))
     );
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => ({ ...prev, stage: newStage }));
     }
+    try {
+      await leadService.updateLead(leadId, { stage: newStage });
+    } catch (e) {
+      // Ignore in mock
+    }
     showToast(`Lead moved to ${newStage}`, 'success');
   };
 
-  const handleUpdateLead = (leadId, updates) => {
+  const handleUpdateLead = async (leadId, updates) => {
     setLeads(prev =>
       prev.map(l => (l.id === leadId ? { ...l, ...updates } : l))
     );
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => ({ ...prev, ...updates }));
     }
+    try {
+      await leadService.updateLead(leadId, updates);
+    } catch (e) {
+      // Ignore in mock
+    }
   };
 
   const handleCreateNewLead = async newLeadData => {
-    const created = {
-      id: `L-${Date.now().toString().slice(-4)}`,
-      name: newLeadData.name,
-      enquiry: newLeadData.enquiry,
-      mobile: newLeadData.mobile,
-      stage: 'New',
-      branchLabel: newLeadData.preferredBranchId || 'Branch 1',
-      preferredBranchId: newLeadData.preferredBranchId || 'Branch 1 (Anna Nagar)',
-      timeAgo: 'Just now',
-      followUpDateFormatted: 'Nov 20, 2025',
-    };
-    setLeads(prev => [created, ...prev]);
-    setSelectedLead(created);
-    showToast('New lead added to pipeline', 'success');
+    try {
+      const savedLead = await leadService.createLead({
+        name: newLeadData.name,
+        mobile: newLeadData.mobile,
+        email: newLeadData.email || null,
+        enquiry: newLeadData.enquiry,
+        preferredBranchId: newLeadData.preferredBranchId || 'B1',
+        assignedBranchId: newLeadData.preferredBranchId || 'B1',
+        source: 'Manual Walk-in',
+        stage: 'New',
+        consentToContact: true,
+      });
+
+      const created = {
+        id: savedLead.id || `L-${Date.now().toString().slice(-4)}`,
+        name: savedLead.name,
+        enquiry: savedLead.enquiry,
+        mobile: savedLead.mobile,
+        stage: 'New',
+        branchLabel: newLeadData.preferredBranchId || 'Branch 1',
+        preferredBranchId: newLeadData.preferredBranchId || 'Branch 1 (Anna Nagar)',
+        timeAgo: 'Just now',
+        followUpDateFormatted: 'Nov 20, 2025',
+      };
+      setLeads(prev => [created, ...prev]);
+      setSelectedLead(created);
+      showToast('New lead added to pipeline', 'success');
+    } catch (err) {
+      showToast('Failed to save lead', 'error');
+    }
   };
 
   // Filter leads based on search term

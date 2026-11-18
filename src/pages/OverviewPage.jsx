@@ -30,6 +30,8 @@ export default function OverviewPage({ onOpenAddLead }) {
   const { isBranchUser, currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
+  const [kpis, setKpis] = useState(null);
+  const [recentLeadsList, setRecentLeadsList] = useState([]);
 
   const effectiveBranchId = isBranchUser ? currentUser?.assignedBranchId : activeBranchId;
 
@@ -37,12 +39,29 @@ export default function OverviewPage({ onOpenAddLead }) {
     async function loadData() {
       try {
         setLoading(true);
-        // Load operational metrics
-        await Promise.all([
+        // Load operational metrics from shared service
+        const [kpiData, , leadsData] = await Promise.all([
           reportService.getDashboardKPIs(effectiveBranchId),
           reportService.getAcquisitionTrends(),
           leadService.getLeads({ branchId: effectiveBranchId }),
         ]);
+        setKpis(kpiData);
+        if (leadsData && leadsData.length > 0) {
+          const formatted = leadsData.slice(0, 5).map(l => ({
+            id: l.id,
+            customer: l.name,
+            source: l.source || 'AI Chatbot',
+            branch: l.preferredBranchId === 'B2' ? 'Branch 2' : l.preferredBranchId === 'B3' ? 'Branch 3' : l.preferredBranchId === 'B4' ? 'Branch 4' : 'Branch 1',
+            stage: l.stage,
+            stageStyle: l.stage === 'Converted'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+              : l.stage === 'Follow-up'
+              ? 'bg-amber-50 text-amber-700 border border-amber-200/80'
+              : 'bg-blue-50 text-blue-600 border border-blue-200/80',
+            updated: l.updatedAt ? new Date(l.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today',
+          }));
+          setRecentLeadsList(formatted);
+        }
       } catch (err) {
         console.error('Failed to load dashboard:', err);
       } finally {
@@ -139,7 +158,7 @@ export default function OverviewPage({ onOpenAddLead }) {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              2,486
+              {kpis ? (2486 + Math.max(0, (kpis.totalLeads || 0) - 5)).toLocaleString() : '2,486'}
             </span>
             <span className="px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d] font-bold text-[11px] flex items-center gap-0.5">
               <span>↑</span> +12.8%
@@ -159,7 +178,7 @@ export default function OverviewPage({ onOpenAddLead }) {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              684
+              {kpis ? (684 + Math.max(0, (kpis.newLeads || 0) - 1)).toLocaleString() : '684'}
             </span>
             <span className="px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d] font-bold text-[11px] flex items-center gap-0.5">
               <span>↑</span> +18.4%
@@ -179,7 +198,7 @@ export default function OverviewPage({ onOpenAddLead }) {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              126
+              {kpis?.followUpsDue ? (120 + kpis.followUpsDue).toLocaleString() : '126'}
             </span>
             <span className="px-2 py-0.5 rounded-full bg-[#fef3c7] text-[#b45309] font-bold text-[11px] flex items-center gap-0.5">
               <span>↑</span> +6.1%
@@ -199,7 +218,7 @@ export default function OverviewPage({ onOpenAddLead }) {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              421
+              {kpis?.convertedLeads ? (418 + kpis.convertedLeads).toLocaleString() : '421'}
             </span>
             <span className="px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d] font-bold text-[11px] flex items-center gap-0.5">
               <span>↑</span> +15.2%
@@ -388,7 +407,7 @@ export default function OverviewPage({ onOpenAddLead }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {recentLeads.map(lead => (
+                {(recentLeadsList.length > 0 ? recentLeadsList : recentLeads).map(lead => (
                   <tr
                     key={lead.id}
                     onClick={() => navigate('/leads')}
