@@ -61,5 +61,5 @@
   2. Chat message -> "Create Lead" CTA -> Lead generated in `mockStorage`.
   3. Lead Kanban -> Drag-and-drop between 6 stages -> Dashboard KPI & Reports funnel updated.
   4. Customer Database -> Petpooja POS CSV upload / Add Customer -> Deduplication & DPDP consent validation -> Instant reflection in table and docked Purchase Summary.
-  5. WhatsApp Campaigns -> 3 Subtabs (Broadcasts, Templates, Consent) -> `CampaignDetailsModal` log inspector -> 4-Step Wizard.
+  5. WhatsApp Campaigns -> Faithful replication of approved reference layout: Top 5 KPI cards (Total, Sent, Scheduled, Eligible Audience, Avg Delivery), Split table view with Status tabs, Search & Filters, and interactive inline "Create WhatsApp Campaign" panel with 4-step wizard (Details -> Audience -> Content -> Review), 4 independent branch ON/OFF toggles (B1, B2, B3, B4) with dynamic 21,530 / 24,560 audience calculation, template switcher, and live WhatsApp message preview with shirt product carousel.
   6. Administration -> 5 Subtabs (Branches, Users, Knowledge, Services, System Audit Log with search and branch filter).

@@ -28,26 +28,24 @@ export const campaignService = {
    */
   async calculateAudience(enabledBranchIds = []) {
     if (USE_MOCKS) {
-      await delay(150);
-      const customers = mockStorage.getCustomers();
-      const branches = mockStorage.getBranches();
+      await delay(80);
+      const branchBaseCounts = {
+        B1: 7850,
+        B2: 6920,
+        B3: 6760,
+        B4: 3030,
+      };
 
       const perBranch = {};
       let totalEligible = 0;
 
-      branches.forEach(b => {
-        if (enabledBranchIds.includes(b.id)) {
-          // Count only customers belonging to this branch with marketing opt-in and valid mobile
-          const eligibleForBranch = customers.filter(
-            c => c.branchId === b.id && c.marketingOptIn === true && isValidIndianMobile(c.mobile)
-          );
-          // Scale counts slightly for realistic retail demonstration if small dataset
-          const count = Math.max(eligibleForBranch.length, 650);
-          perBranch[b.id] = count;
+      ['B1', 'B2', 'B3', 'B4'].forEach(bId => {
+        if (enabledBranchIds.includes(bId)) {
+          const count = branchBaseCounts[bId] || 5000;
+          perBranch[bId] = count;
           totalEligible += count;
         } else {
-          // Explicitly 0 if branch toggle is off
-          perBranch[b.id] = 0;
+          perBranch[bId] = 0;
         }
       });
 
@@ -65,25 +63,32 @@ export const campaignService = {
 
   async createCampaign(campaignData) {
     if (USE_MOCKS) {
-      await delay(250);
-      const audienceSummary = await this.calculateAudience(campaignData.enabledBranchIds);
+      await delay(200);
+      const audienceSummary = await this.calculateAudience(campaignData.enabledBranchIds || campaignData.branches);
+      const branchList = campaignData.branches || campaignData.enabledBranchIds || ['B1'];
+      const branchDisplay = branchList.sort().join(', ');
 
       const newCampaign = {
-        id: `CAMP-${Date.now().toString().slice(-4)}`,
-        title: campaignData.title.trim(),
-        templateId: campaignData.templateId || 'tpl_festive_promo',
-        imageUrl: campaignData.imageUrl || null,
-        caption: campaignData.caption.trim(),
-        enabledBranchIds: campaignData.enabledBranchIds || [],
-        audienceSummary,
-        scheduleAt: campaignData.scheduleAt || new Date().toISOString(),
-        status: campaignData.scheduleAt ? 'Scheduled' : 'Draft',
+        id: `CAMP-${Date.now().toString().slice(-3)}`,
+        name: campaignData.name || campaignData.title || 'Untitled Campaign',
+        title: campaignData.name || campaignData.title || 'Untitled Campaign',
+        type: campaignData.type || 'Promotional',
+        branches: branchList,
+        branchesDisplay: branchDisplay,
+        audience: audienceSummary.totalEligible || 21530,
+        status: campaignData.status || (campaignData.scheduleAt ? 'Scheduled' : 'Draft'),
+        date: campaignData.status === 'Draft' ? '—' : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        template: campaignData.template || 'Product Announcement',
+        imageUrl: campaignData.imageUrl || 'https://images.unsplash.com/photo-1620012253295-c15c429f66bf?auto=format&fit=crop&w=300&q=80',
+        caption: campaignData.caption || '👕 New Winter Collection! Discover our latest range of formal shirts starting from ₹1,299.',
         deliveryCounts: {
-          sent: 0,
-          delivered: 0,
-          read: 0,
-          failed: 0,
+          sent: campaignData.status === 'Sent' ? audienceSummary.totalEligible : 0,
+          delivered: campaignData.status === 'Sent' ? Math.round(audienceSummary.totalEligible * 0.98) : 0,
+          read: campaignData.status === 'Sent' ? Math.round(audienceSummary.totalEligible * 0.84) : 0,
+          failed: campaignData.status === 'Sent' ? Math.round(audienceSummary.totalEligible * 0.02) : 0,
         },
+        deliveryRate: campaignData.status === 'Sent' ? '98.2%' : 'Pending',
+        readRate: campaignData.status === 'Sent' ? '84.6%' : 'Pending',
         createdAt: new Date().toISOString(),
       };
 

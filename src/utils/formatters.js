@@ -57,6 +57,18 @@ export function isValidIndianMobile(mobileStr = '') {
 }
 
 /**
+ * Formats a numeric value into INR currency string (e.g. ₹1,299 or ₹24,560)
+ */
+export function formatCurrency(amount) {
+  if (amount === undefined || amount === null || isNaN(Number(amount))) return '₹0';
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(amount));
+}
+
+/**
  * Downloads an array of objects as a formatted CSV file
  */
 export function downloadCSV(filename, rows) {

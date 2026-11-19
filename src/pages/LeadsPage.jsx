@@ -24,6 +24,8 @@ export default function LeadsPage({ isAddModalOpen: propIsAddOpen, setIsAddModal
   const { isBranchUser, currentUser } = useAuth();
   const { showToast } = useToast();
 
+  const effectiveBranchId = isBranchUser ? currentUser?.assignedBranchId : activeBranchId;
+
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);

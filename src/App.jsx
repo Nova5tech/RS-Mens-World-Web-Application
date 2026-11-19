@@ -14,6 +14,11 @@ import CustomersPage from './pages/CustomersPage.jsx';
 import CampaignsPage from './pages/CampaignsPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import PosPage from './pages/PosPage.jsx';
+import InvoicesPage from './pages/InvoicesPage.jsx';
+import InventoryPage from './pages/InventoryPage.jsx';
+import TransfersPage from './pages/TransfersPage.jsx';
+import AccountingPage from './pages/AccountingPage.jsx';
 
 export default function App() {
   return (
@@ -36,6 +41,14 @@ export default function App() {
                 }
               >
                 <Route index element={<OverviewPage />} />
+                {/* Retail ERP Operations */}
+                <Route path="pos" element={<PosPage />} />
+                <Route path="invoices" element={<InvoicesPage />} />
+                <Route path="inventory" element={<InventoryPage />} />
+                <Route path="transfers" element={<TransfersPage />} />
+                <Route path="accounting" element={<AccountingPage />} />
+
+                {/* Customer Engagement & Growth */}
                 <Route path="chat-inbox" element={<ChatInboxPage />} />
                 <Route path="leads" element={<LeadsPage />} />
                 <Route path="customers" element={<CustomersPage />} />

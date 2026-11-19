@@ -2,6 +2,11 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  ShoppingCart,
+  FileText,
+  Package,
+  ArrowRightLeft,
+  DollarSign,
   MessageSquare,
   Users,
   Megaphone,
@@ -27,9 +32,24 @@ export default function Sidebar({ onClose }) {
 
   const navSections = [
     {
-      title: 'OVERVIEW',
+      title: 'OPERATIONS',
       items: [
         { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/pos', label: 'Billing (POS)', icon: ShoppingCart },
+        { to: '/invoices', label: 'Invoices & Returns', icon: FileText },
+      ],
+    },
+    {
+      title: 'INVENTORY',
+      items: [
+        { to: '/inventory', label: 'Stock & Catalogue', icon: Package },
+        { to: '/transfers', label: 'Stock Transfers', icon: ArrowRightLeft },
+      ],
+    },
+    {
+      title: 'FINANCE',
+      items: [
+        { to: '/accounting', label: 'Accounting', icon: DollarSign },
       ],
     },
     {
@@ -42,14 +62,9 @@ export default function Sidebar({ onClose }) {
       ],
     },
     {
-      title: 'INSIGHTS',
+      title: 'INSIGHTS & CONTROL',
       items: [
         { to: '/reports', label: 'Reports', icon: BarChart3 },
-      ],
-    },
-    {
-      title: 'ADMINISTRATION',
-      items: [
         { to: '/settings?tab=users', label: 'Users & Branches', icon: Shield, adminOnly: true },
         { to: '/settings', label: 'Settings', icon: Settings, adminOnly: true },
       ],

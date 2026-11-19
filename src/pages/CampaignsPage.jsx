@@ -1,652 +1,1467 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Megaphone,
-  Plus,
+  MessageSquare,
   Send,
-  Users,
-  CheckCircle2,
-  Calendar,
   Clock,
-  Sparkles,
-  Store,
-  ChevronRight,
+  Users,
   TrendingUp,
-  FileText,
-  ShieldCheck,
-  AlertTriangle,
-  Info,
+  Search,
+  Store,
+  SlidersHorizontal,
+  Plus,
+  X,
   Check,
-  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  Info,
+  Calendar,
+  Sparkles,
+  ShieldCheck,
+  FileText,
+  Copy,
+  Trash2,
+  ExternalLink,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Smartphone,
   Eye,
+  Filter,
 } from 'lucide-react';
-import { campaignService } from '../services/campaignService.js';
 import { useBranch } from '../context/BranchContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import CampaignWizardModal from '../components/campaigns/CampaignWizardModal.jsx';
-import CampaignDetailsModal from '../components/campaigns/CampaignDetailsModal.jsx';
-import { formatDateTime } from '../utils/formatters.js';
+import { campaignService } from '../services/campaignService.js';
+import { INITIAL_CAMPAIGNS } from '../mocks/seedData.js';
+
+// Branch metadata matching the approved reference screenshot
+const BRANCH_CONFIG = [
+  { id: 'B1', name: 'Branch 1 (Anna Nagar)', code: 'B1', baseAudience: 7850 },
+  { id: 'B2', name: 'Branch 2 (T. Nagar)', code: 'B2', baseAudience: 6920 },
+  { id: 'B3', name: 'Branch 3 (Velachery)', code: 'B3', baseAudience: 6760 },
+  { id: 'B4', name: 'Branch 4 (Adyar)', code: 'B4', baseAudience: 3030 },
+];
+
+// Pre-approved Meta WhatsApp templates catalog
+const MESSAGE_TEMPLATES = [
+  {
+    id: 'tpl_product_announcement',
+    name: 'Product Announcement',
+    type: 'Promotional',
+    title: '👕 New Winter Collection!',
+    body: 'Discover our latest range of formal shirts starting from ₹1,299.\nVisit your nearest RS Mens World store today!',
+    imageCategory: 'shirts',
+    defaultOffer: 'starting from ₹1,299',
+  },
+  {
+    id: 'tpl_festive_offer',
+    name: 'Festive Offer & Discount',
+    type: 'Promotional',
+    title: '🎉 Festive Celebration - Flat 20% Off!',
+    body: 'Celebrate in royal style with flat 20% off on all formal & casual collections across selected stores. Offer valid this week only!',
+    imageCategory: 'festive',
+    defaultOffer: 'Flat 20% Off',
+  },
+  {
+    id: 'tpl_formal_arrivals',
+    name: 'New Formal Arrivals',
+    type: 'Announcement',
+    title: '👔 New Arrivals Alert!',
+    body: 'Premium Egyptian Cotton & Italian Linen formal shirts now in stock. Experience bespoke comfort and precision stitching today.',
+    imageCategory: 'shirts',
+    defaultOffer: 'Exclusive Selection',
+  },
+  {
+    id: 'tpl_loyalty_privilege',
+    name: 'Loyal Customer Exclusive',
+    type: 'Loyalty',
+    title: '⭐ Exclusive Member Privilege!',
+    body: 'Dear valued patron, enjoy an additional 10% loyalty reward points on your next weekend purchase at RS Mens World.',
+    imageCategory: 'suits',
+    defaultOffer: '10% Bonus Points',
+  },
+  {
+    id: 'tpl_store_event',
+    name: 'Store Event Invitation',
+    type: 'Event',
+    title: '✨ Exclusive Styling Gala!',
+    body: 'Join us for an exclusive evening of bespoke styling trials and master tailor consultations. Complimentary private styling session included.',
+    imageCategory: 'suits',
+    defaultOffer: 'Complimentary Consultation',
+  },
+  {
+    id: 'tpl_customer_feedback',
+    name: 'Customer Feedback Request',
+    type: 'Engagement',
+    title: '💬 How was your shopping experience?',
+    body: 'Rate your recent visit to RS Mens World and help us serve you better. Takes only 30 seconds!',
+    imageCategory: null,
+    defaultOffer: 'Quick Survey',
+  },
+];
+
+// Shirt product photos matching screenshot
+const SHIRT_PREVIEW_PRODUCTS = [
+  {
+    id: 'shirt-1',
+    name: 'Crisp White Oxford',
+    image: 'https://images.unsplash.com/photo-1620012253295-c15c429f66bf?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'shirt-2',
+    name: 'Sky Blue Chambray',
+    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'shirt-3',
+    name: 'Midnight Navy Slim',
+    image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=300&q=80',
+  },
+];
 
 export default function CampaignsPage() {
-  const { branches } = useBranch();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'templates' | 'consent'
-  const [campaigns, setCampaigns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('ALL');
-
-  const loadCampaigns = async () => {
+  // Primary campaign list state initialized from seed data
+  const [campaigns, setCampaigns] = useState(() => {
     try {
-      setLoading(true);
-      const data = await campaignService.getCampaigns();
-      setCampaigns(data);
-    } catch (err) {
-      console.error('Failed to load campaigns:', err);
-    } finally {
-      setLoading(false);
+      const stored = localStorage.getItem('rs_campaigns');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length >= 10) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to load campaigns from storage', e);
+    }
+    return INITIAL_CAMPAIGNS;
+  });
+
+  // Filter & Search states
+  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'DRAFTS' | 'SCHEDULED' | 'SENT'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [branchFilter, setBranchFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [sortAsc, setSortAsc] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Drawer & Selection states
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Wizard state: 1: Details, 2: Audience, 3: Content, 4: Review
+  const [wizardStep, setWizardStep] = useState(1);
+  const [formCampaignName, setFormCampaignName] = useState('Winter Collection Launch');
+  const [formCampaignType, setFormCampaignType] = useState('Promotional');
+  const [formTemplateName, setFormTemplateName] = useState('Product Announcement');
+
+  // Branch ON/OFF switches (defaults to B1, B2, B3 ON, B4 OFF as in screenshot)
+  const [branchToggles, setBranchToggles] = useState({
+    B1: true,
+    B2: true,
+    B3: true,
+    B4: false,
+  });
+
+  // Wizard Step 2 & 3 custom settings
+  const [targetSegment, setTargetSegment] = useState('ALL_CONSENTED');
+  const [customOfferText, setCustomOfferText] = useState('starting from ₹1,299');
+  const [ctaType, setCtaType] = useState('VISIT_STORE');
+  const [deliveryTiming, setDeliveryTiming] = useState('SEND_NOW');
+  const [scheduleDateTime, setScheduleDateTime] = useState('2025-11-20T10:30');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Toggle single branch
+  const handleToggleBranch = branchId => {
+    setBranchToggles(prev => ({
+      ...prev,
+      [branchId]: !prev[branchId],
+    }));
+  };
+
+  // Calculate live eligible audience based on active branch switches
+  const selectedBranchCount = useMemo(() => {
+    return Object.values(branchToggles).filter(Boolean).length;
+  }, [branchToggles]);
+
+  const eligibleAudienceSelected = useMemo(() => {
+    let sum = 0;
+    BRANCH_CONFIG.forEach(b => {
+      if (branchToggles[b.id]) {
+        sum += b.baseAudience;
+      }
+    });
+    return sum;
+  }, [branchToggles]);
+
+  // Overall top KPI statistics
+  const totalCampaignsCount = campaigns.length;
+  const sentCampaignsCount = campaigns.filter(c => c.status?.toUpperCase() === 'SENT').length;
+  const scheduledCampaignsCount = campaigns.filter(c => c.status?.toUpperCase() === 'SCHEDULED').length;
+  const draftCampaignsCount = campaigns.filter(c => c.status?.toUpperCase() === 'DRAFT').length;
+  const totalAudienceCount = 24560; // 7850 + 6920 + 6760 + 3030
+
+  // Filtered campaigns for table
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(item => {
+      // Tab filter
+      if (activeTab === 'DRAFTS' && item.status?.toUpperCase() !== 'DRAFT') return false;
+      if (activeTab === 'SCHEDULED' && item.status?.toUpperCase() !== 'SCHEDULED') return false;
+      if (activeTab === 'SENT' && item.status?.toUpperCase() !== 'SENT') return false;
+
+      // Dropdown status filter
+      if (statusFilter !== 'ALL' && item.status?.toUpperCase() !== statusFilter.toUpperCase()) {
+        return false;
+      }
+
+      // Dropdown branch filter
+      if (branchFilter !== 'ALL') {
+        const hasBranch = item.branches?.some(
+          b => b.toLowerCase() === branchFilter.toLowerCase() || item.branchesDisplay?.includes(branchFilter)
+        );
+        if (!hasBranch) return false;
+      }
+
+      // Search term
+      if (searchTerm.trim()) {
+        const query = searchTerm.toLowerCase();
+        const matchesName = item.name?.toLowerCase().includes(query);
+        const matchesType = item.type?.toLowerCase().includes(query);
+        const matchesBranch = item.branchesDisplay?.toLowerCase().includes(query);
+        if (!matchesName && !matchesType && !matchesBranch) return false;
+      }
+
+      return true;
+    });
+  }, [campaigns, activeTab, statusFilter, branchFilter, searchTerm]);
+
+  // Sort campaigns if needed
+  const sortedCampaigns = useMemo(() => {
+    return [...filteredCampaigns].sort((a, b) => {
+      if (sortAsc) {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      return 0; // retain default order as per screenshot
+    });
+  }, [filteredCampaigns, sortAsc]);
+
+  // Paginated campaigns
+  const totalPages = Math.max(1, Math.ceil(sortedCampaigns.length / pageSize));
+  const paginatedCampaigns = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedCampaigns.slice(start, start + pageSize);
+  }, [sortedCampaigns, currentPage, pageSize]);
+
+  // Checkbox selection handlers
+  const handleSelectAll = e => {
+    if (e.target.checked) {
+      setSelectedIds(new Set(paginatedCampaigns.map(c => c.id)));
+    } else {
+      setSelectedIds(new Set());
     }
   };
 
-  useEffect(() => {
-    loadCampaigns();
-  }, []);
+  const handleToggleRowSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
-  const filteredCampaigns = statusFilter === 'ALL'
-    ? campaigns
-    : campaigns.filter(c => c.status?.toUpperCase() === statusFilter);
+  // Find currently active template object
+  const currentTemplate = useMemo(() => {
+    return (
+      MESSAGE_TEMPLATES.find(t => t.name.toLowerCase() === formTemplateName.toLowerCase()) ||
+      MESSAGE_TEMPLATES[0]
+    );
+  }, [formTemplateName]);
 
-  // Compute metrics
-  const totalCampaigns = campaigns.length;
-  const activeCount = campaigns.filter(
-    c => c.status?.toUpperCase() === 'ACTIVE' || c.status?.toUpperCase() === 'SCHEDULED'
-  ).length;
-  const totalDelivered = campaigns.reduce((acc, c) => acc + (c.deliveryCounts?.delivered || 0), 0);
-  const totalRead = campaigns.reduce((acc, c) => acc + (c.deliveryCounts?.read || 0), 0);
-  const avgReadRate = totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 68;
+  // Handle template selection change
+  const handleTemplateChange = e => {
+    const tName = e.target.value;
+    setFormTemplateName(tName);
+    const found = MESSAGE_TEMPLATES.find(t => t.name === tName);
+    if (found) {
+      setFormCampaignType(found.type);
+      setCustomOfferText(found.defaultOffer);
+    }
+  };
 
-  // Meta pre-approved templates catalog
-  const metaTemplates = [
-    {
-      id: 'tpl_wedding_grooms_2026',
-      name: 'Grooms Wedding Special 2026',
-      category: 'Marketing',
-      language: 'English (en_IN)',
-      status: 'Approved',
-      bodyText: 'Namaste {{1}}! Wedding season is here at RS Mens World. Step into elegance with our bespoke 2-piece and 3-piece tailored suits. Book your private fitting at our {{2}} store and enjoy {{3}} privileges. Reply "YES" to confirm.',
-      variables: ['{{1}} = Customer Name', '{{2}} = Branch Store', '{{3}} = Offer Discount'],
-    },
-    {
-      id: 'tpl_festive_promo',
-      name: 'Festive & Royal Kurta Privilege',
-      category: 'Marketing',
-      language: 'English (en_IN)',
-      status: 'Approved',
-      bodyText: 'Celebrate this festive season with RS Mens World. Discover pure silk kurtas, Modi jackets, and traditional wedding sherwanis with exclusive 15% privileges across all stores. Visit us today!',
-      variables: ['{{1}} = Customer Name', '{{2}} = Store Location'],
-    },
-    {
-      id: 'tpl_bespoke_suit',
-      name: 'Bespoke Tailoring Measurement Slot',
-      category: 'Utility',
-      language: 'English (en_IN)',
-      status: 'Approved',
-      bodyText: 'Hello {{1}}, your custom suit measurement appointment has been scheduled for {{2}} at our {{3}} branch. Our master tailor looks forward to assisting you. Tap below to get directions or reschedule.',
-      variables: ['{{1}} = Customer Name', '{{2}} = Appointment Time', '{{3}} = Branch'],
-    },
-    {
-      id: 'tpl_birthday_wish',
-      name: 'Birthday Privilege Voucher',
-      category: 'Marketing',
-      language: 'English (en_IN)',
-      status: 'Approved',
-      bodyText: 'Happy Birthday from RS Mens World! As our esteemed patron, enjoy an exclusive 20% birthday celebration discount across all garments this week at any branch. Show this message at the counter.',
-      variables: ['{{1}} = Customer Name', '{{2}} = Validity Period'],
-    },
-  ];
+  // Step 4: Submit Campaign (Launch or Schedule or Draft)
+  const handleSubmitCampaign = async (statusOverride = null) => {
+    const activeBranchKeys = Object.keys(branchToggles).filter(k => branchToggles[k]);
+    if (activeBranchKeys.length === 0) {
+      showToast('Please enable at least one store branch', 'error');
+      return;
+    }
 
-  // Consent & Suppression records
-  const suppressionRecords = [
-    {
-      id: 'SUP-01',
-      mobile: '+91 90000 67890',
-      name: 'Arjun Reddy',
-      branch: 'Branch 3 (Vijayawada)',
-      reason: 'No consent recorded on Petpooja POS invoice',
-      status: 'Suppressed',
-      date: 'Nov 16, 2025',
-    },
-    {
-      id: 'SUP-02',
-      mobile: '+91 99876 55432',
-      name: 'Sandeep Rao',
-      branch: 'Branch 1 (Rajahmundry)',
-      reason: 'User sent "STOP" via WhatsApp incoming chat',
-      status: 'Unsubscribed',
-      date: 'Nov 13, 2025',
-    },
-    {
-      id: 'SUP-03',
-      mobile: '+91 91234 56789',
-      name: 'Ganesh Babu',
-      branch: 'Branch 2 (Kakinada)',
-      reason: 'Unchecked opt-in box during online enquiry',
-      status: 'Suppressed',
-      date: 'Nov 10, 2025',
-    },
-    {
-      id: 'SUP-04',
-      mobile: '+91 98480 00000',
-      name: 'Kishore Varma',
-      branch: 'Branch 1 (Rajahmundry)',
-      reason: 'User opt-out request logged by store staff',
-      status: 'Unsubscribed',
-      date: 'Nov 08, 2025',
-    },
-  ];
+    setIsSubmitting(true);
+    try {
+      const finalStatus =
+        statusOverride ||
+        (deliveryTiming === 'SCHEDULE_LATER' ? 'Scheduled' : 'Sent');
+
+      const payload = {
+        name: formCampaignName || 'Untitled Campaign',
+        type: formCampaignType,
+        branches: activeBranchKeys,
+        template: formTemplateName,
+        status: finalStatus,
+        scheduleAt: deliveryTiming === 'SCHEDULE_LATER' ? scheduleDateTime : null,
+      };
+
+      const newCampaign = await campaignService.createCampaign(payload);
+
+      setCampaigns(prev => {
+        const updated = [newCampaign, ...prev];
+        try {
+          localStorage.setItem('rs_campaigns', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Storage failed', e);
+        }
+        return updated;
+      });
+
+      showToast(
+        finalStatus === 'Sent'
+          ? `Campaign "${newCampaign.name}" broadcast simulated to ${newCampaign.audience?.toLocaleString()} customers!`
+          : `Campaign "${newCampaign.name}" saved as ${finalStatus}`,
+        'success'
+      );
+
+      // Reset to details
+      setWizardStep(1);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to create campaign', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Duplicate campaign
+  const handleDuplicate = (camp, e) => {
+    e.stopPropagation();
+    setActiveMenuId(null);
+    const dup = {
+      ...camp,
+      id: `CAMP-${Date.now().toString().slice(-3)}`,
+      name: `${camp.name} (Copy)`,
+      status: 'Draft',
+      date: '—',
+    };
+    setCampaigns(prev => [dup, ...prev]);
+    showToast(`Duplicated "${camp.name}" to Drafts`, 'info');
+  };
+
+  // Delete campaign
+  const handleDelete = (campId, e) => {
+    e.stopPropagation();
+    setActiveMenuId(null);
+    setCampaigns(prev => prev.filter(c => c.id !== campId));
+    showToast('Campaign deleted successfully', 'info');
+  };
+
+  // Send simulated test WhatsApp message
+  const handleSendTestMessage = (camp, e) => {
+    e.stopPropagation();
+    setActiveMenuId(null);
+    showToast(`Test WhatsApp message sent to store manager (+91 98765 43210)`, 'success');
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-            WhatsApp Broadcast Campaigns
-          </h2>
-          <p className="text-xs text-slate-500 font-sans mt-0.5">
-            Meta approved templates, consent-filtered target audiences & branch-specific broadcasts
-          </p>
-        </div>
-
-        <button
-          onClick={() => setIsWizardOpen(true)}
-          className="px-4 py-2 bg-[#0f766e] hover:bg-[#0d655f] text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Broadcast Campaign</span>
-        </button>
-      </div>
-
-      {/* Provider Notice Banner matching Claude reference */}
-      <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-start gap-3 text-xs text-amber-800">
-        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <span className="font-bold">Provider simulated mode: </span>
-          WhatsApp Cloud API provider is running in high-fidelity mock mode. Message dispatches, delivery receipts, and read statuses are simulated. In production, dispatches route through the official Meta WhatsApp Business Platform with verified phone numbers.
-        </div>
-      </div>
-
-      {/* Subtabs Navigation */}
-      <div className="p-1.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-1 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('campaigns')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'campaigns'
-              ? 'bg-[#0f766e] text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <Megaphone className="w-4 h-4" />
-          <span>Broadcast Campaigns ({campaigns.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('templates')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'templates'
-              ? 'bg-[#0f766e] text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>Meta Approved Templates ({metaTemplates.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('consent')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'consent'
-              ? 'bg-[#0f766e] text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>DPDP Consent & Suppression (160 Suppressed)</span>
-        </button>
-      </div>
-
-      {/* TAB 1: CAMPAIGNS */}
-      {activeTab === 'campaigns' && (
-        <div className="space-y-6">
-          {/* 4 Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Total Campaigns
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-[#e6f7f2] flex items-center justify-center text-[#008C83]">
-                  <Megaphone className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-extrabold text-[#102333] tracking-tight">
-                {totalCampaigns}
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">{activeCount} active & scheduled</p>
+    <div className="space-y-4 max-w-[1600px] mx-auto pb-12 font-sans select-none">
+      {/* 1. TOP STATS ROW (5 Cards matching approved screenshot) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* Card 1: Total Campaigns */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#e6f7f2] flex items-center justify-center text-[#008C83] shrink-0">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-[#102333] tracking-tight leading-none">
+              {totalCampaignsCount}
             </div>
-
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Messages Delivered
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-extrabold text-emerald-700 tracking-tight">
-                {totalDelivered.toLocaleString()}
-              </div>
-              <p className="text-[11px] text-emerald-600 font-medium mt-1">98.6% delivery success</p>
-            </div>
-
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Read Engagement
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-extrabold text-[#102333] tracking-tight">
-                {avgReadRate}%
-              </div>
-              <p className="text-[11px] text-blue-600 font-medium mt-1">Within 2 hours of broadcast</p>
-            </div>
-
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Consent Gate
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-extrabold text-[#102333] tracking-tight">
-                Strict Opt-in
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">Zero non-consented dispatches</p>
+            <div className="text-[11px] font-medium text-slate-500 mt-1 truncate">
+              Total Campaigns
             </div>
           </div>
+        </div>
 
-          {/* Filter Tabs Bar */}
-          <div className="p-2 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1 overflow-x-auto">
-              {['ALL', 'ACTIVE', 'SCHEDULED', 'COMPLETED', 'DRAFT'].map(status => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                    statusFilter === status
-                      ? 'bg-[#0f766e] text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
-                </button>
-              ))}
+        {/* Card 2: Sent Campaigns */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#e6f7f2] flex items-center justify-center text-[#008C83] shrink-0">
+            <Send className="w-4 h-4 -rotate-12" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-[#102333] tracking-tight leading-none">
+              {sentCampaignsCount}
             </div>
-
-            <div className="text-xs text-slate-500 px-3 hidden sm:block">
-              Showing {filteredCampaigns.length} campaigns · Click to view details
+            <div className="text-[11px] font-medium text-slate-500 mt-1 truncate">
+              Sent Campaigns
             </div>
           </div>
+        </div>
 
-          {/* Campaign Cards List */}
-          <div className="space-y-4">
-            {loading ? (
-              <div className="p-16 text-center text-xs text-slate-400 font-mono bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
-                Loading campaigns...
-              </div>
-            ) : filteredCampaigns.length === 0 ? (
-              <div className="p-16 text-center bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
-                <p className="font-semibold text-slate-700">No broadcast campaigns found</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Click "New Broadcast Campaign" above to launch a campaign
-                </p>
-              </div>
-            ) : (
-              filteredCampaigns.map(camp => {
-                const statusUpper = (camp.status || 'DRAFT').toUpperCase();
-                let statusBadge = (
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                    {camp.status}
-                  </span>
-                );
-                if (statusUpper === 'ACTIVE') {
-                  statusBadge = (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      Active
-                    </span>
-                  );
-                } else if (statusUpper === 'SCHEDULED') {
-                  statusBadge = (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
-                      Scheduled
-                    </span>
-                  );
-                } else if (statusUpper === 'COMPLETED') {
-                  statusBadge = (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#e6f7f2] text-[#008C83] border border-[#A8F0D0]">
-                      Completed
-                    </span>
-                  );
-                }
+        {/* Card 3: Scheduled */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#e6f7f2] flex items-center justify-center text-[#008C83] shrink-0">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-[#102333] tracking-tight leading-none">
+              {scheduledCampaignsCount}
+            </div>
+            <div className="text-[11px] font-medium text-slate-500 mt-1 truncate">
+              Scheduled
+            </div>
+          </div>
+        </div>
 
-                const delivered = camp.deliveryCounts?.delivered || 0;
-                const target = camp.audienceSummary?.totalEligible || delivered;
-                const percentDelivered =
-                  target > 0 ? Math.min(100, Math.round((delivered / target) * 100)) : 100;
+        {/* Card 4: Eligible Audience */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#e6f7f2] flex items-center justify-center text-[#008C83] shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-[#102333] tracking-tight leading-none">
+              {totalAudienceCount.toLocaleString()}
+            </div>
+            <div className="text-[11px] font-medium text-slate-500 mt-1 truncate">
+              Eligible Audience
+            </div>
+          </div>
+        </div>
 
-                return (
-                  <div
-                    key={camp.id}
-                    onClick={() => setSelectedCampaign(camp)}
-                    className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-[#008C83]/60 transition-all flex flex-col lg:flex-row gap-5 justify-between items-start lg:items-center cursor-pointer group"
-                  >
-                    {/* Left Details */}
-                    <div className="flex-1 space-y-2.5">
-                      <div className="flex items-center gap-2.5">
-                        {statusBadge}
-                        <span className="font-mono text-xs font-semibold text-slate-400">
-                          #{camp.id}
-                        </span>
-                      </div>
+        {/* Card 5: Avg. Delivery (Simulated) */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3 col-span-2 sm:col-span-1">
+          <div className="w-10 h-10 rounded-full bg-[#e6f7f2] flex items-center justify-center text-[#008C83] shrink-0">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-[#102333] tracking-tight leading-none">
+              82.4%
+            </div>
+            <div className="text-[11px] font-medium text-slate-500 mt-1 truncate">
+              Avg. Delivery (Simulated)
+            </div>
+          </div>
+        </div>
+      </div>
 
-                      <h3 className="font-bold text-base text-slate-900 tracking-tight group-hover:text-[#008C83] transition-colors">
-                        {camp.title}
-                      </h3>
+      {/* 2. MAIN SPLIT CONTENT: TABLE & FILTERS (LEFT) + CREATE CAMPAIGN PANEL (RIGHT) */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
+        {/* LEFT COLUMN: Tabs + Filters + Dense Campaign Table + Pagination */}
+        <div className={`space-y-3 transition-all duration-200 ${isDrawerOpen ? 'w-full lg:w-[58%] xl:w-[60%]' : 'w-full'}`}>
+          {/* Top Status Tabs matching screenshot */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+              <button
+                onClick={() => {
+                  setActiveTab('ALL');
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'ALL'
+                    ? 'bg-[#004F4C] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                All Campaigns ({totalCampaignsCount})
+              </button>
 
-                      <p className="text-xs text-slate-600 leading-relaxed max-w-2xl bg-[#f8fbfb] p-3 rounded-xl border border-slate-100 italic">
-                        "{camp.caption}"
-                      </p>
+              <button
+                onClick={() => {
+                  setActiveTab('DRAFTS');
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'DRAFTS'
+                    ? 'bg-[#004F4C] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                Drafts ({draftCampaignsCount})
+              </button>
 
-                      {/* Target Branches */}
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <span className="text-[11px] text-slate-400 font-medium">Target stores:</span>
-                        {branches.map(b => {
-                          const isTargeted = camp.enabledBranchIds?.includes(b.id);
-                          return (
-                            <span
-                              key={b.id}
-                              className={`px-2 py-0.5 rounded-lg text-[11px] font-medium border ${
-                                isTargeted
-                                  ? 'bg-[#e6f7f2] text-[#008C83] border-[#A8F0D0]'
-                                  : 'bg-slate-50 text-slate-400 border-slate-200 line-through opacity-60'
-                              }`}
-                            >
-                              {b.name}
-                            </span>
-                          );
-                        })}
-                      </div>
+              <button
+                onClick={() => {
+                  setActiveTab('SCHEDULED');
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'SCHEDULED'
+                    ? 'bg-[#004F4C] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                Scheduled ({scheduledCampaignsCount})
+              </button>
 
-                      <div className="text-[11px] text-slate-400 font-sans pt-0.5 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span>
-                          Timing: {camp.scheduleAt ? formatDateTime(camp.scheduleAt) : 'Immediate'}
-                        </span>
-                      </div>
-                    </div>
+              <button
+                onClick={() => {
+                  setActiveTab('SENT');
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'SENT'
+                    ? 'bg-[#004F4C] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                Sent ({sentCampaignsCount})
+              </button>
+            </div>
 
-                    {/* Right: Metrics Card */}
-                    <div className="w-full lg:w-72 bg-[#f8fbfb] p-4 rounded-2xl border border-slate-200/80 shrink-0 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                          Delivery Progress
-                        </span>
-                        <span className="text-xs font-bold text-[#008C83]">{percentDelivered}%</span>
-                      </div>
-
-                      {/* Progress bar */}
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#008C83] rounded-full transition-all duration-500"
-                          style={{ width: `${percentDelivered}%` }}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                        <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                          <span className="text-[10px] text-slate-400 block font-medium">
-                            Target Audience
-                          </span>
-                          <span className="font-bold text-slate-900 text-sm">
-                            {target.toLocaleString()}
-                          </span>
-                        </div>
-
-                        <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                          <span className="text-[10px] text-slate-400 block font-medium">
-                            Delivered
-                          </span>
-                          <span className="font-bold text-emerald-700 text-sm">
-                            {delivered.toLocaleString()}
-                          </span>
-                        </div>
-
-                        <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                          <span className="text-[10px] text-slate-400 block font-medium">
-                            Read Rate
-                          </span>
-                          <span className="font-bold text-[#008C83] text-sm">
-                            {delivered > 0 && camp.deliveryCounts?.read
-                              ? `${Math.round((camp.deliveryCounts.read / delivered) * 100)}%`
-                              : '68%'}
-                          </span>
-                        </div>
-
-                        <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                          <span className="text-[10px] text-slate-400 block font-medium">
-                            Details
-                          </span>
-                          <span className="font-bold text-[#008C83] text-xs flex items-center gap-1">
-                            <Eye className="w-3.5 h-3.5" /> View Log
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+            {/* When drawer is closed, show "+ New Campaign" button */}
+            {!isDrawerOpen && (
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="px-4 py-2 bg-[#004F4C] hover:bg-[#003d3a] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Campaign</span>
+              </button>
             )}
           </div>
-        </div>
-      )}
 
-      {/* TAB 2: META TEMPLATES */}
-      {activeTab === 'templates' && (
-        <div className="space-y-4">
-          <div className="p-4 bg-[#f0f9f7] rounded-2xl border border-[#D9E9E8] flex items-center justify-between text-xs text-slate-700">
-            <span>
-              All broadcast messages must adhere to pre-approved WhatsApp Business Platform (Meta) templates. Free-form messaging is strictly prohibited outside active 24-hour customer service windows.
-            </span>
-            <span className="font-bold text-[#008C83] shrink-0 ml-4">
-              {metaTemplates.length} Approved Templates
-            </span>
-          </div>
+          {/* Search & Dropdown Filters Bar */}
+          <div className="p-2.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex flex-wrap items-center gap-2.5">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search campaigns..."
+                value={searchTerm}
+                onChange={e => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-9 pr-3 py-1.5 bg-transparent border-0 text-xs text-slate-800 placeholder-slate-400 outline-none font-sans"
+              />
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {metaTemplates.map(tmpl => (
-              <div
-                key={tmpl.id}
-                className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3.5 flex flex-col justify-between"
+            {/* Branch Dropdown */}
+            <div className="relative">
+              <select
+                value={branchFilter}
+                onChange={e => {
+                  setBranchFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="appearance-none pl-8 pr-7 py-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-200 rounded-xl hover:border-slate-300 outline-none cursor-pointer"
               >
-                <div>
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span className="font-mono text-xs font-bold text-slate-800">{tmpl.name}</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      ✓ {tmpl.status}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-[11px] text-slate-500 mt-2">
-                    <span>Category: <strong className="text-slate-700">{tmpl.category}</strong></span>
-                    <span>Language: <strong className="text-slate-700">{tmpl.language}</strong></span>
-                  </div>
-
-                  {/* Body text box styled as WhatsApp bubble */}
-                  <div className="mt-3 p-3.5 bg-[#f8fbfb] rounded-xl border border-slate-200/70 text-xs text-slate-700 font-sans leading-relaxed">
-                    {tmpl.bodyText}
-                  </div>
-
-                  {/* Dynamic Variables */}
-                  <div className="mt-3 space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                      Dynamic Variables:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5 pt-0.5">
-                      {tmpl.variables.map((v, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-slate-100 text-slate-600 border border-slate-200"
-                        >
-                          {v}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
-                  <span className="font-mono text-[11px] text-slate-400">ID: {tmpl.id}</span>
-                  <button
-                    onClick={() => {
-                      setIsWizardOpen(true);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-[#e6f7f2] hover:bg-[#d0f2e6] text-[#008C83] font-bold text-xs transition-colors cursor-pointer"
-                  >
-                    Use in Campaign
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: DPDP CONSENT & SUPPRESSION */}
-      {activeTab === 'consent' && (
-        <div className="space-y-6">
-          {/* Summary KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                Total Customer Directory
-              </span>
-              <div className="text-2xl font-extrabold text-[#102333] tracking-tight mt-1">
-                2,486
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">Aggregated across all 4 store branches</p>
+                <option value="ALL">Branch: All</option>
+                <option value="B1">Branch 1 (Anna Nagar)</option>
+                <option value="B2">Branch 2 (T. Nagar)</option>
+                <option value="B3">Branch 3 (Velachery)</option>
+                <option value="B4">Branch 4 (Adyar)</option>
+              </select>
+              <Store className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <span className="text-[10px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider block">
-                Opted-In (DPDP Valid)
-              </span>
-              <div className="text-2xl font-extrabold text-emerald-700 tracking-tight mt-1">
-                2,326 <span className="text-xs font-bold text-emerald-600">(93.6%)</span>
-              </div>
-              <p className="text-[11px] text-emerald-600 mt-1">Explicit invoice or online opt-in consent</p>
+            {/* Status Dropdown */}
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={e => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="appearance-none pl-8 pr-7 py-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-200 rounded-xl hover:border-slate-300 outline-none cursor-pointer"
+              >
+                <option value="ALL">Status: All</option>
+                <option value="SENT">Sent</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="DRAFT">Draft</option>
+              </select>
+              <FileText className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <span className="text-[10px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-              <span className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider block">
-                Suppressed / Opted-Out
-              </span>
-              <div className="text-2xl font-extrabold text-amber-700 tracking-tight mt-1">
-                160 <span className="text-xs font-bold text-amber-600">(6.4%)</span>
-              </div>
-              <p className="text-[11px] text-amber-700 mt-1">Automatically excluded from all dispatches</p>
-            </div>
+            {/* Reset Filters button */}
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setBranchFilter('ALL');
+                setStatusFilter('ALL');
+                setActiveTab('ALL');
+                showToast('Campaign filters reset', 'info');
+              }}
+              className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-medium text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+              <span>Filters</span>
+            </button>
           </div>
 
-          {/* Suppression Audit Table */}
+          {/* CAMPAIGNS TABLE */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 bg-[#f8fbfb] flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 text-xs">Suppression Registry Audit</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Customers who will NOT receive promotional WhatsApp messages
-                </p>
-              </div>
-              <span className="text-xs font-semibold text-slate-500">
-                Audit Trail: DPDP Act 2023 Compliant
-              </span>
-            </div>
-
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="bg-[#f8fbfb] border-b border-slate-200 text-slate-500 font-semibold text-[11px]">
-                  <tr>
-                    <th className="py-3 px-4">Customer Name</th>
-                    <th className="py-3 px-4">Mobile Number</th>
-                    <th className="py-3 px-4">Assigned Branch</th>
-                    <th className="py-3 px-4">Suppression Reason</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Logged Date</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-[#D9E9E8] text-slate-600 font-semibold text-xs bg-white">
+                    <th className="p-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={
+                          paginatedCampaigns.length > 0 &&
+                          selectedIds.size === paginatedCampaigns.length
+                        }
+                        onChange={handleSelectAll}
+                        className="rounded border-slate-300 text-[#004F4C] focus:ring-[#004F4C]/20"
+                      />
+                    </th>
+                    <th className="p-3 font-semibold text-slate-700">Campaign Name</th>
+                    <th className="p-3 font-semibold text-slate-700">Type</th>
+                    <th className="p-3 font-semibold text-slate-700">Branches</th>
+                    <th className="p-3 font-semibold text-slate-700">Audience</th>
+                    <th className="p-3 font-semibold text-slate-700">Status</th>
+                    <th
+                      className="p-3 font-semibold text-slate-700 cursor-pointer select-none"
+                      onClick={() => setSortAsc(!sortAsc)}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Date</span>
+                        <span className="text-[11px] text-slate-400">↕</span>
+                      </div>
+                    </th>
+                    <th className="p-3 w-8 text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {suppressionRecords.map(rec => (
-                    <tr key={rec.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-slate-900">{rec.name}</td>
-                      <td className="py-3.5 px-4 font-mono">{rec.mobile}</td>
-                      <td className="py-3.5 px-4">{rec.branch}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{rec.reason}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                          {rec.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500">{rec.date}</td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            showToast(`Consent re-verification request sent to ${rec.name}`, 'info');
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors cursor-pointer"
-                        >
-                          Verify Consent
-                        </button>
+                  {paginatedCampaigns.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-12 text-center text-slate-400 text-xs">
+                        No campaigns found matching your filter criteria.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    paginatedCampaigns.map(camp => {
+                      const isChecked = selectedIds.has(camp.id);
+
+                      // Type badge styling matching screenshot
+                      let typeBadge = (
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#e6f7f2] text-[#008C83]">
+                          {camp.type}
+                        </span>
+                      );
+                      if (camp.type === 'Announcement') {
+                        typeBadge = (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#e8f4fd] text-[#1976d2]">
+                            Announcement
+                          </span>
+                        );
+                      } else if (camp.type === 'Loyalty') {
+                        typeBadge = (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#f3e8ff] text-[#7c3aed]">
+                            Loyalty
+                          </span>
+                        );
+                      } else if (camp.type === 'Event') {
+                        typeBadge = (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#e0f7fa] text-[#00838f]">
+                            Event
+                          </span>
+                        );
+                      } else if (camp.type === 'Engagement') {
+                        typeBadge = (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#e1f5fe] text-[#0288d1]">
+                            Engagement
+                          </span>
+                        );
+                      }
+
+                      // Status badge styling matching screenshot
+                      let statusBadge = (
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                          Draft
+                        </span>
+                      );
+                      if (camp.status === 'Sent') {
+                        statusBadge = (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#eafaf1] text-[#1e7e34] border border-[#c3e6cb]">
+                            Sent
+                          </span>
+                        );
+                      } else if (camp.status === 'Scheduled') {
+                        statusBadge = (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#fff8e6] text-[#b45309] border border-[#fde68a]">
+                            Scheduled
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <tr
+                          key={camp.id}
+                          onClick={() => {
+                            // Populate drawer with this campaign to inspect
+                            setFormCampaignName(camp.name);
+                            setFormCampaignType(camp.type);
+                            setFormTemplateName(camp.template || 'Product Announcement');
+                            const bMap = { B1: false, B2: false, B3: false, B4: false };
+                            (camp.branches || []).forEach(bId => {
+                              if (bMap[bId] !== undefined) bMap[bId] = true;
+                            });
+                            setBranchToggles(bMap);
+                            setIsDrawerOpen(true);
+                          }}
+                          className={`hover:bg-[#f0f7f5]/40 transition-colors cursor-pointer ${
+                            isChecked ? 'bg-[#f0f9f7]' : ''
+                          }`}
+                        >
+                          {/* Checkbox */}
+                          <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={e => handleToggleRowSelect(camp.id, e)}
+                              className="rounded border-slate-300 text-[#004F4C] focus:ring-[#004F4C]/20"
+                            />
+                          </td>
+
+                          {/* Campaign Name */}
+                          <td className="p-3 font-semibold text-slate-900 tracking-tight">
+                            {camp.name}
+                          </td>
+
+                          {/* Type */}
+                          <td className="p-3">{typeBadge}</td>
+
+                          {/* Branches */}
+                          <td className="p-3 text-slate-600 font-medium font-mono text-[11px]">
+                            {camp.branchesDisplay || camp.branches?.join(', ') || 'B1, B2'}
+                          </td>
+
+                          {/* Audience */}
+                          <td className="p-3 text-slate-800 font-semibold font-mono">
+                            {camp.audience ? camp.audience.toLocaleString() : '—'}
+                          </td>
+
+                          {/* Status */}
+                          <td className="p-3">{statusBadge}</td>
+
+                          {/* Date */}
+                          <td className="p-3 text-slate-600 font-medium">
+                            {camp.date || '—'}
+                          </td>
+
+                          {/* Action dots menu */}
+                          <td className="p-3 text-center relative" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() =>
+                                setActiveMenuId(activeMenuId === camp.id ? null : camp.id)
+                              }
+                              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+
+                            {/* Dropdown popup */}
+                            {activeMenuId === camp.id && (
+                              <div className="absolute right-3 top-8 w-44 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 text-left">
+                                <button
+                                  onClick={e => {
+                                    handleSendTestMessage(camp, e);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                >
+                                  <Smartphone className="w-3.5 h-3.5 text-[#008C83]" />
+                                  <span>Send Test Message</span>
+                                </button>
+                                <button
+                                  onClick={e => handleDuplicate(camp, e)}
+                                  className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                >
+                                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>Duplicate Campaign</span>
+                                </button>
+                                <button
+                                  onClick={e => handleDelete(camp.id, e)}
+                                  className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                  <span>Delete Campaign</span>
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination footer matching approved screenshot */}
+            <div className="p-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+              <div>
+                Showing {Math.min((currentPage - 1) * pageSize + 1, sortedCampaigns.length)} –{' '}
+                {Math.min(currentPage * pageSize, sortedCampaigns.length)} of {sortedCampaigns.length} campaigns
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Rows per page dropdown */}
+                <div className="relative">
+                  <select
+                    value={pageSize}
+                    onChange={e => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none pl-3 pr-6 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none cursor-pointer"
+                  >
+                    <option value={10}>10 per page</option>
+                    <option value={20}>20 per page</option>
+                  </select>
+                  <span className="text-[9px] text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
+                </div>
+
+                {/* Page numbers */}
+                <div className="flex items-center gap-1">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+
+                  {Array.from({ length: totalPages }).map((_, idx) => {
+                    const pageNum = idx + 1;
+                    const isActive = pageNum === currentPage;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-7 h-7 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-[#004F4C] text-white shadow-xs'
+                            : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Campaign Creation Wizard */}
-      <CampaignWizardModal
-        isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
-        onCampaignCreated={loadCampaigns}
-      />
+        {/* RIGHT COLUMN: "Create WhatsApp Campaign" Panel / Drawer matching screenshot */}
+        {isDrawerOpen && (
+          <div className="w-full lg:w-[42%] xl:w-[40%] bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 shrink-0 flex flex-col justify-between space-y-4">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-base text-[#102333] tracking-tight">
+                Create WhatsApp Campaign
+              </h3>
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="w-7 h-7 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                title="Close Drawer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-      {/* Campaign Inspection & Dispatch Log Modal */}
-      <CampaignDetailsModal
-        campaign={selectedCampaign}
-        isOpen={!!selectedCampaign}
-        onClose={() => setSelectedCampaign(null)}
-      />
+            {/* Stepper Navigation (1 Details - 2 Audience - 3 Content - 4 Review) */}
+            <div className="flex items-center justify-between text-xs font-semibold py-1">
+              {/* Step 1: Details */}
+              <button
+                onClick={() => setWizardStep(1)}
+                className="flex items-center gap-1.5 cursor-pointer text-left"
+              >
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    wizardStep === 1
+                      ? 'bg-[#004F4C] text-white'
+                      : wizardStep > 1
+                      ? 'bg-[#008C83] text-white'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {wizardStep > 1 ? <Check className="w-3 h-3 stroke-[3]" /> : '1'}
+                </div>
+                <span className={wizardStep === 1 ? 'text-[#102333] font-bold' : 'text-slate-500 font-medium'}>
+                  Details
+                </span>
+              </button>
+
+              <div className="flex-1 h-px bg-slate-200 mx-2" />
+
+              {/* Step 2: Audience */}
+              <button
+                onClick={() => setWizardStep(2)}
+                className="flex items-center gap-1.5 cursor-pointer text-left"
+              >
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    wizardStep === 2
+                      ? 'bg-[#004F4C] text-white'
+                      : wizardStep > 2
+                      ? 'bg-[#008C83] text-white'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {wizardStep > 2 ? <Check className="w-3 h-3 stroke-[3]" /> : '2'}
+                </div>
+                <span className={wizardStep === 2 ? 'text-[#102333] font-bold' : 'text-slate-500 font-medium'}>
+                  Audience
+                </span>
+              </button>
+
+              <div className="flex-1 h-px bg-slate-200 mx-2" />
+
+              {/* Step 3: Content */}
+              <button
+                onClick={() => setWizardStep(3)}
+                className="flex items-center gap-1.5 cursor-pointer text-left"
+              >
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    wizardStep === 3
+                      ? 'bg-[#004F4C] text-white'
+                      : wizardStep > 3
+                      ? 'bg-[#008C83] text-white'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {wizardStep > 3 ? <Check className="w-3 h-3 stroke-[3]" /> : '3'}
+                </div>
+                <span className={wizardStep === 3 ? 'text-[#102333] font-bold' : 'text-slate-500 font-medium'}>
+                  Content
+                </span>
+              </button>
+
+              <div className="flex-1 h-px bg-slate-200 mx-2" />
+
+              {/* Step 4: Review */}
+              <button
+                onClick={() => setWizardStep(4)}
+                className="flex items-center gap-1.5 cursor-pointer text-left"
+              >
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    wizardStep === 4
+                      ? 'bg-[#004F4C] text-white'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  4
+                </div>
+                <span className={wizardStep === 4 ? 'text-[#102333] font-bold' : 'text-slate-500 font-medium'}>
+                  Review
+                </span>
+              </button>
+            </div>
+
+            {/* STEP 1: DETAILS & SPLIT PREVIEW (Exactly matching approved screenshot) */}
+            {wizardStep === 1 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                {/* Form Controls Column (Left) */}
+                <div className="space-y-3.5">
+                  {/* Campaign Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Campaign Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formCampaignName}
+                      onChange={e => setFormCampaignName(e.target.value)}
+                      placeholder="e.g. Winter Collection Launch"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#008C83] focus:ring-1 focus:ring-[#008C83]"
+                    />
+                  </div>
+
+                  {/* Campaign Type */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Campaign Type <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={formCampaignType}
+                        onChange={e => setFormCampaignType(e.target.value)}
+                        className="w-full appearance-none pl-8 pr-7 py-2 text-xs font-medium bg-white text-slate-800 border border-slate-200 rounded-xl hover:border-slate-300 outline-none cursor-pointer focus:border-[#008C83]"
+                      >
+                        <option value="Promotional">Promotional</option>
+                        <option value="Announcement">Announcement</option>
+                        <option value="Loyalty">Loyalty</option>
+                        <option value="Event">Event</option>
+                        <option value="Engagement">Engagement</option>
+                      </select>
+                      <Sparkles className="w-3.5 h-3.5 text-[#008C83] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <span className="text-[10px] text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
+                    </div>
+                  </div>
+
+                  {/* Message Template */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Message Template <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={formTemplateName}
+                        onChange={handleTemplateChange}
+                        className="w-full appearance-none pl-3 pr-7 py-2 text-xs font-medium bg-white text-slate-800 border border-slate-200 rounded-xl hover:border-slate-300 outline-none cursor-pointer focus:border-[#008C83]"
+                      >
+                        {MESSAGE_TEMPLATES.map(tpl => (
+                          <option key={tpl.id} value={tpl.name}>
+                            {tpl.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-[10px] text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
+                    </div>
+                  </div>
+
+                  {/* Select Branches (Independent ON/OFF) */}
+                  <div className="pt-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-2">
+                      Select Branches (Independent ON/OFF)
+                    </label>
+                    <div className="space-y-2">
+                      {BRANCH_CONFIG.map(branch => {
+                        const isEnabled = !!branchToggles[branch.id];
+                        return (
+                          <div
+                            key={branch.id}
+                            onClick={() => handleToggleBranch(branch.id)}
+                            className="flex items-center justify-between p-2 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              {/* Green Checkbox */}
+                              <div
+                                className={`w-4 h-4 rounded flex items-center justify-center transition-colors ${
+                                  isEnabled
+                                    ? 'bg-[#10b981] text-white'
+                                    : 'border border-slate-300 bg-white'
+                                }`}
+                              >
+                                {isEnabled && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
+                              <span className="text-xs font-medium text-slate-800">
+                                {branch.code} – {branch.name}
+                              </span>
+                            </div>
+
+                            {/* Pill Switch Toggle matching screenshot */}
+                            <div
+                              className={`w-9 h-5 rounded-full transition-colors flex items-center p-0.5 ${
+                                isEnabled ? 'bg-[#10b981]' : 'bg-slate-300'
+                              }`}
+                            >
+                              <div
+                                className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform transform ${
+                                  isEnabled ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* WhatsApp Message Preview Column (Right) */}
+                <div className="space-y-1.5 flex flex-col justify-start">
+                  <div className="text-xs font-semibold text-slate-700">
+                    Message Preview
+                  </div>
+
+                  {/* WhatsApp chat card container */}
+                  <div className="bg-[#eef5f3] p-3 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
+                    {/* WhatsApp Message Bubble */}
+                    <div className="bg-white rounded-2xl rounded-tl-sm p-3 shadow-xs border border-slate-100 space-y-2.5">
+                      {/* Product Shirts Carousel matching screenshot */}
+                      {currentTemplate.imageCategory === 'shirts' && (
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {SHIRT_PREVIEW_PRODUCTS.map(prod => (
+                            <div
+                              key={prod.id}
+                              className="rounded-lg overflow-hidden bg-slate-50 border border-slate-100 aspect-square"
+                            >
+                              <img
+                                src={prod.image}
+                                alt={prod.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Other category banner image if present */}
+                      {currentTemplate.imageCategory === 'festive' && (
+                        <div className="rounded-lg overflow-hidden bg-slate-50 border border-slate-100 h-28">
+                          <img
+                            src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80"
+                            alt="Festive Collection"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+
+                      {currentTemplate.imageCategory === 'suits' && (
+                        <div className="rounded-lg overflow-hidden bg-slate-50 border border-slate-100 h-28">
+                          <img
+                            src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=400&q=80"
+                            alt="Royal Bespoke Suits"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+
+                      {/* Message Body */}
+                      <div className="text-xs text-slate-800 space-y-1.5 leading-relaxed font-sans">
+                        <div className="font-bold text-[#102333]">
+                          {currentTemplate.title}
+                        </div>
+                        <div className="text-slate-600 whitespace-pre-line text-[11px]">
+                          {currentTemplate.body}
+                        </div>
+                      </div>
+
+                      {/* Time & Read Double Tick matching screenshot */}
+                      <div className="flex items-center justify-end gap-1 text-[10px] text-slate-400 pt-0.5">
+                        <span>10:30 AM</span>
+                        <span className="text-[#008C83] font-bold text-xs">✔✔</span>
+                      </div>
+                    </div>
+
+                    {/* WhatsApp Quick Reply Action Button */}
+                    <div className="bg-white/80 rounded-xl p-2 text-center text-xs font-semibold text-[#008C83] border border-slate-200/60 shadow-2xs">
+                      🛒 Visit Nearest Store
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: AUDIENCE & DPDP COMPLIANCE GATING */}
+            {wizardStep === 2 && (
+              <div className="space-y-4 pt-1">
+                <div className="p-3 bg-[#e6f7f2] border border-[#A8F0D0] rounded-xl flex items-start gap-2.5 text-xs text-[#004F4C]">
+                  <ShieldCheck className="w-4 h-4 text-[#008C83] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Strict DPDP 2023 Consent Gate: </span>
+                    Broadcasts only target patrons with explicit marketing opt-in collected at Petpooja POS billing or inbound chat.
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">
+                    Target Customer Segment
+                  </label>
+                  <div className="space-y-2">
+                    {[
+                      { id: 'ALL_CONSENTED', label: 'All Consented Patrons (Recommended)', count: eligibleAudienceSelected },
+                      { id: 'VIP_ONLY', label: 'VIP Club Members (AOV > ₹3,500)', count: Math.round(eligibleAudienceSelected * 0.22) },
+                      { id: 'REPEAT_BUYERS', label: 'Repeat Buyers (2+ orders this year)', count: Math.round(eligibleAudienceSelected * 0.54) },
+                      { id: 'INACTIVE_60', label: 'Lapsed Customers (No visits in 60+ days)', count: Math.round(eligibleAudienceSelected * 0.24) },
+                    ].map(seg => (
+                      <div
+                        key={seg.id}
+                        onClick={() => setTargetSegment(seg.id)}
+                        className={`p-3 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                          targetSegment === seg.id
+                            ? 'bg-[#f0f9f7] border-[#008C83] text-[#004F4C] font-semibold'
+                            : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="targetSegment"
+                            checked={targetSegment === seg.id}
+                            onChange={() => setTargetSegment(seg.id)}
+                            className="text-[#004F4C] focus:ring-[#004F4C]"
+                          />
+                          <span>{seg.label}</span>
+                        </div>
+                        <span className="font-mono font-bold">{seg.count.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Branch Breakdown Table */}
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Selected Branch Reach
+                  </div>
+                  <div className="space-y-1.5 text-xs">
+                    {BRANCH_CONFIG.map(b => (
+                      <div key={b.id} className="flex justify-between items-center text-slate-700">
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              branchToggles[b.id] ? 'bg-emerald-500' : 'bg-slate-300'
+                            }`}
+                          />
+                          {b.name}
+                        </span>
+                        <span className="font-mono font-semibold">
+                          {branchToggles[b.id] ? b.baseAudience.toLocaleString() : '0 (Disabled)'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: CONTENT & VARIABLES */}
+            {wizardStep === 3 && (
+              <div className="space-y-4 pt-1">
+                <div className="text-xs text-slate-600 leading-relaxed">
+                  Customize personalization variables and interactive CTA buttons for template:{' '}
+                  <span className="font-bold text-[#004F4C]">{formTemplateName}</span>
+                </div>
+
+                {/* Variable 1 */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Variable {'{{1}}'} — Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value="Auto-personalized from Customer DB (e.g. Namaste Rahul!)"
+                    className="w-full px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-500"
+                  />
+                </div>
+
+                {/* Variable 2 */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Variable {'{{2}}'} — Offer / Pricing Tag
+                  </label>
+                  <input
+                    type="text"
+                    value={customOfferText}
+                    onChange={e => setCustomOfferText(e.target.value)}
+                    placeholder="e.g. starting from ₹1,299"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-[#008C83]"
+                  />
+                </div>
+
+                {/* Interactive Action Button */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Call-To-Action (CTA) Button
+                  </label>
+                  <select
+                    value={ctaType}
+                    onChange={e => setCtaType(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 outline-none"
+                  >
+                    <option value="VISIT_STORE">🛒 Visit Nearest Store (Google Maps Link)</option>
+                    <option value="CHAT_STYLIST">💬 Chat with Branch Stylist (Direct Handover)</option>
+                    <option value="CALL_NOW">📞 Call Store Desk</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: REVIEW & CONFIRM BROADCAST */}
+            {wizardStep === 4 && (
+              <div className="space-y-4 pt-1">
+                <div className="bg-[#f0f9f7] p-3.5 rounded-xl border border-[#A8F0D0] space-y-2 text-xs">
+                  <div className="font-bold text-[#004F4C] text-sm">
+                    Campaign Broadcast Summary
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-slate-700">
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Campaign Name:</span>
+                      <span className="font-semibold">{formCampaignName}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Type & Template:</span>
+                      <span className="font-semibold">{formCampaignType} · {formTemplateName}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Target Branches:</span>
+                      <span className="font-semibold">
+                        {Object.keys(branchToggles).filter(k => branchToggles[k]).join(', ')} ({selectedBranchCount} branches)
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Audience Reach:</span>
+                      <span className="font-bold text-[#008C83] text-sm font-mono">
+                        {eligibleAudienceSelected.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delivery Scheduling */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">
+                    Delivery Timing
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 text-xs">
+                      <input
+                        type="radio"
+                        name="deliveryTiming"
+                        checked={deliveryTiming === 'SEND_NOW'}
+                        onChange={() => setDeliveryTiming('SEND_NOW')}
+                        className="text-[#004F4C] focus:ring-[#004F4C]"
+                      />
+                      <span className="font-medium text-slate-800">
+                        Send Immediately (Simulated Instant Dispatches)
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 text-xs">
+                      <input
+                        type="radio"
+                        name="deliveryTiming"
+                        checked={deliveryTiming === 'SCHEDULE_LATER'}
+                        onChange={() => setDeliveryTiming('SCHEDULE_LATER')}
+                        className="text-[#004F4C] focus:ring-[#004F4C]"
+                      />
+                      <span className="font-medium text-slate-800">
+                        Schedule for Later Date & Time
+                      </span>
+                    </label>
+                  </div>
+
+                  {deliveryTiming === 'SCHEDULE_LATER' && (
+                    <div className="mt-2.5">
+                      <input
+                        type="datetime-local"
+                        value={scheduleDateTime}
+                        onChange={e => setScheduleDateTime(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Drawer Actions Bar matching screenshot */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+              {/* Eligible Audience Card (Mint green box on left matching screenshot) */}
+              <div className="flex-1 bg-[#e6f7f2] rounded-xl p-2.5 sm:p-3 border border-[#A8F0D0]/60 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#A8F0D0]/50 flex items-center justify-center text-[#004F4C]">
+                    <Users className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-[#004F4C] font-semibold leading-tight">
+                      Eligible Audience (Selected Branches)
+                    </div>
+                    <div className="text-base sm:text-lg font-bold text-[#102333] tracking-tight font-mono leading-tight">
+                      {eligibleAudienceSelected.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                  title="Audience is filtered against marketing consent and valid Indian 10-digit mobile numbers."
+                >
+                  <Info className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* Wizard Step Navigation Button */}
+              {wizardStep === 1 && (
+                <button
+                  onClick={() => setWizardStep(2)}
+                  className="px-5 py-3 bg-[#004F4C] hover:bg-[#003d3a] text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs cursor-pointer shrink-0"
+                >
+                  <span>Next: Audience</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+
+              {wizardStep === 2 && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setWizardStep(1)}
+                    className="px-3 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => setWizardStep(3)}
+                    className="px-4 py-3 bg-[#004F4C] hover:bg-[#003d3a] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Next: Content</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {wizardStep === 3 && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setWizardStep(2)}
+                    className="px-3 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => setWizardStep(4)}
+                    className="px-4 py-3 bg-[#004F4C] hover:bg-[#003d3a] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Next: Review</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {wizardStep === 4 && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleSubmitCampaign('Draft')}
+                    disabled={isSubmitting}
+                    className="px-3 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Save Draft
+                  </button>
+                  <button
+                    onClick={() => handleSubmitCampaign()}
+                    disabled={isSubmitting}
+                    className="px-4 py-3 bg-[#004F4C] hover:bg-[#003d3a] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <span>{deliveryTiming === 'SCHEDULE_LATER' ? 'Schedule' : 'Launch Broadcast'}</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

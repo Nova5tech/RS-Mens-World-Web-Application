@@ -24,7 +24,22 @@ export default function TopBar({ onOpenMobileMenu }) {
   let pageTitle = 'Head Office Dashboard';
   let pageSubtitle = 'All branches · Customer engagement overview';
 
-  if (location.pathname.startsWith('/chat-inbox')) {
+  if (location.pathname.startsWith('/pos')) {
+    pageTitle = 'Billing (POS) Register';
+    pageSubtitle = 'Fast garment barcode checkout, discounts & printed tax invoices';
+  } else if (location.pathname.startsWith('/invoices')) {
+    pageTitle = 'Invoices & Returns';
+    pageSubtitle = 'Sales transactions, GST receipts, and customer return processing';
+  } else if (location.pathname.startsWith('/inventory')) {
+    pageTitle = 'Stock & Product Catalogue';
+    pageSubtitle = 'Master garment SKUs, variants, cost vs MRP & branch stock balances';
+  } else if (location.pathname.startsWith('/transfers')) {
+    pageTitle = 'Stock Transfers';
+    pageSubtitle = 'Inter-branch garment requisitions, in-transit & receipt stock-in';
+  } else if (location.pathname.startsWith('/accounting')) {
+    pageTitle = 'Store Accounting & Ledger';
+    pageSubtitle = 'Cash/bank balances, expense vouchers & day-end register closing';
+  } else if (location.pathname.startsWith('/chat-inbox')) {
     pageTitle = 'AI Chatbot';
     pageSubtitle = 'Customer conversations • All branches';
   } else if (location.pathname.startsWith('/leads')) {
@@ -35,7 +50,7 @@ export default function TopBar({ onOpenMobileMenu }) {
     pageSubtitle = 'Manage customers and import from Petpooja';
   } else if (location.pathname.startsWith('/campaigns')) {
     pageTitle = 'WhatsApp Campaigns';
-    pageSubtitle = 'Targeted promotional broadcasts & engagement';
+    pageSubtitle = 'Create and manage WhatsApp marketing campaigns across branches';
   } else if (location.pathname.startsWith('/reports')) {
     pageTitle = 'Reports & Insights';
     pageSubtitle = 'Performance metrics & growth analytics';
