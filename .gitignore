@@ -6,3 +6,14 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Excluded non-application specifications, agent artifacts & documents
+openspec/
+.openspec/
+gsd/
+.gsd/
+docs/
+*.docx
+FRONTEND_PROGRESS.md
+FUNCTIONALITY_PROGRESS.md
+RETAIL_FRONTEND_PROGRESS.md
