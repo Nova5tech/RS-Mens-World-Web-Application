@@ -86,12 +86,12 @@ export default function OverviewPage({ onOpenAddLead }) {
     { date: 'Nov 30', total: 176, converted: 62 },
   ];
 
-  // Branch distribution matching reference image
+  // Branch distribution matching official Andhra Pradesh stores
   const branchLeads = [
-    { name: 'Branch 1 – Kakinada', count: 782, percent: 85 },
-    { name: 'Branch 2 – Rajahmundry', count: 621, percent: 70 },
-    { name: 'Branch 3 – Eluru', count: 487, percent: 55 },
-    { name: 'Branch 4 – Vijayawada', count: 596, percent: 65 },
+    { name: 'Branch 1 – Rajahmandary Main Branch', count: 782, percent: 85 },
+    { name: 'Branch 2 – Kakinada Branch', count: 621, percent: 70 },
+    { name: 'Branch 3 – Vijayawada Branch', count: 487, percent: 55 },
+    { name: 'Branch 4 – Guntur Branch', count: 596, percent: 65 },
   ];
 
   // Recent leads matching reference image

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FileText,
   Search,
@@ -23,6 +23,8 @@ import SalesReturnModal from '../components/pos/SalesReturnModal.jsx';
 
 export default function InvoicesPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
   const { branches, activeBranchId, setActiveBranchId } = useBranch();
   const { isBranchUser, currentUser, isAdmin } = useAuth();
   const { showToast } = useToast();
@@ -31,7 +33,7 @@ export default function InvoicesPage() {
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [paymentModeFilter, setPaymentModeFilter] = useState('ALL');
 

@@ -243,7 +243,7 @@ export function generateInitialStock() {
 
   INITIAL_PRODUCTS.forEach(p => {
     branches.forEach((b, idx) => {
-      // Branch 1 (Rajahmundry) has full stock, others have varied realistic quantities
+      // Branch 1 (Rajahmandary Main Branch) has full stock, others have varied realistic quantities
       let qty = p.price > 10000 ? 3 : 18;
       if (b === 'B2') qty = p.price > 10000 ? 2 : 12;
       if (b === 'B3') qty = p.price > 10000 ? 1 : 8;

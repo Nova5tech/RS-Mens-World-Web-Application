@@ -16,10 +16,19 @@ import {
   Activity,
   User,
   Plus,
+  CheckCircle2,
+  RotateCcw,
+  UserCheck,
+  MessageCircle,
+  FileText,
+  Store,
+  ChevronRight,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useBranch } from '../../context/BranchContext.jsx';
 import { leadService } from '../../services/leadService.js';
+import ConversationInfoDrawer from './ConversationInfoDrawer.jsx';
+import ConversationExpandModal from './ConversationExpandModal.jsx';
 
 export default function StaffChatInbox({ onNavigateToLeads }) {
   const { showToast } = useToast();
@@ -29,6 +38,30 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [inputMessage, setInputMessage] = useState('');
+
+  // Interactive dialog states
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isExpandOpen, setIsExpandOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
+
+  const moreMenuRef = useRef(null);
+  const attachMenuRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  // Close menus on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) {
+        setIsMoreMenuOpen(false);
+      }
+      if (attachMenuRef.current && !attachMenuRef.current.contains(event.target)) {
+        setIsAttachMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Initial conversations matching screenshot exactly
   const initialConversations = [
@@ -44,7 +77,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
       status: 'OPEN',
       channel: 'WhatsApp',
       branch: 'Branch 1',
-      fullBranchName: 'Branch 1 (Anna Nagar)',
+      fullBranchName: 'Branch 1 – Rajahmandary Main Branch',
       phone: '+91 98765 43210',
       interests: ['Formal Shirts', 'Size L'],
       leadStatus: 'New',
@@ -52,7 +85,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
       contextBullets: [
         'Enquired about formal shirts.',
         'Interested in size L.',
-        'Confirmed availability at Anna Nagar.',
+        'Confirmed availability at Rajahmundry Main Branch.',
         'Ready for store follow-up.',
       ],
       messages: [
@@ -102,13 +135,13 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
         {
           id: 'm5',
           sender: 'customer',
-          text: 'The blue one looks good. Is it available at your Anna Nagar store?',
+          text: 'The blue one looks good. Is it available at your Rajahmundry store?',
           time: '10:27 AM',
         },
         {
           id: 'm6',
           sender: 'bot',
-          text: 'Yes, it is in stock at our Anna Nagar branch. Would you like me to create a lead so our team can assist you further?',
+          text: 'Yes, it is in stock at our Rajahmundry Main Branch. Would you like me to create a lead so our team can assist you further?',
           time: '10:28 AM',
           status: 'read',
         },
@@ -124,7 +157,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
       status: 'OPEN',
       channel: 'Website Chat',
       branch: 'Branch 2',
-      fullBranchName: 'Branch 2 (Rajahmundry)',
+      fullBranchName: 'Branch 2 – Kakinada Branch',
       phone: '+91 98451 22334',
       interests: ['Wedding Suits', 'Accessories'],
       leadStatus: 'Follow-up',
@@ -160,7 +193,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
       status: 'OPEN',
       channel: 'WhatsApp',
       branch: 'Branch 3',
-      fullBranchName: 'Branch 3 (Vijayawada)',
+      fullBranchName: 'Branch 3 – Vijayawada Branch',
       phone: '+91 97011 55667',
       interests: ['Linen Blazers'],
       leadStatus: 'Qualified',
@@ -197,13 +230,13 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
       status: 'PENDING',
       channel: 'Instagram',
       branch: 'Branch 1',
-      fullBranchName: 'Branch 1 (Anna Nagar)',
+      fullBranchName: 'Branch 1 – Rajahmandary Main Branch',
       phone: '+91 99887 66554',
       interests: ['Store Locator'],
       leadStatus: 'New',
       followUpDate: 'Nov 21, 2025',
       contextBullets: [
-        'Customer asked for nearest store address in Chennai/AP.',
+        'Customer asked for nearest store address in Andhra Pradesh.',
         'Sent location maps card and branch opening hours.',
       ],
       messages: [
@@ -216,7 +249,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
         {
           id: 'vs2',
           sender: 'bot',
-          text: 'Our flagship store is located at Main Road, Rajahmundry, with branches in Anna Nagar, Kakinada, and Vijayawada.',
+          text: 'Our flagship store is located at Main Road, Rajahmundry, with branches in Kakinada, Vijayawada, and Guntur.',
           time: '10:46 AM',
           status: 'read',
         },
@@ -232,7 +265,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
       status: 'CLOSED',
       channel: 'WhatsApp',
       branch: 'Branch 2',
-      fullBranchName: 'Branch 2 (Kakinada)',
+      fullBranchName: 'Branch 2 – Kakinada Branch',
       phone: '+91 94432 11223',
       interests: ['Festive Kurta', 'Sherwani'],
       leadStatus: 'Converted',
@@ -267,7 +300,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
       status: 'CLOSED',
       channel: 'Website Form',
       branch: 'Branch 4',
-      fullBranchName: 'Branch 4 (Guntur)',
+      fullBranchName: 'Branch 4 – Guntur Branch',
       phone: '+91 91234 56789',
       interests: ['Exchange Policy'],
       leadStatus: 'Closed',
@@ -296,7 +329,6 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
 
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedConvId, setSelectedConvId] = useState('conv-1');
-  const messagesEndRef = useRef(null);
 
   const selectedConv =
     conversations.find(c => c.id === selectedConvId) || conversations[0];
@@ -321,14 +353,14 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
     return true;
   });
 
-  const handleSendMessage = e => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
+  const handleSendMessage = (textToSend = inputMessage) => {
+    const text = typeof textToSend === 'string' ? textToSend.trim() : inputMessage.trim();
+    if (!text) return;
 
     const newMsg = {
       id: `user-${Date.now()}`,
       sender: 'bot',
-      text: inputMessage.trim(),
+      text,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'read',
     };
@@ -349,6 +381,105 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
 
     setInputMessage('');
     showToast('Message sent to customer', 'success');
+  };
+
+  const handleToggleStatus = () => {
+    setIsMoreMenuOpen(false);
+    const newStatus = selectedConv.status === 'CLOSED' ? 'OPEN' : 'CLOSED';
+    setConversations(prev =>
+      prev.map(c => (c.id === selectedConv.id ? { ...c, status: newStatus } : c))
+    );
+    showToast(`Conversation marked as ${newStatus === 'CLOSED' ? 'Resolved' : 'Active'}`, 'success');
+  };
+
+  const handleRequestHandover = () => {
+    setIsMoreMenuOpen(false);
+    const newStatus = 'PENDING';
+    const handoverMsg = {
+      id: `sys-${Date.now()}`,
+      sender: 'bot',
+      text: '⚠️ Staff Handover Requested: Live stylist notified at store desk for in-person consultation.',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'read',
+    };
+
+    setConversations(prev =>
+      prev.map(c => {
+        if (c.id === selectedConv.id) {
+          return {
+            ...c,
+            status: newStatus,
+            messages: [...c.messages, handoverMsg],
+          };
+        }
+        return c;
+      })
+    );
+    showToast(`Staff handover requested for ${selectedConv.customerName}`, 'info');
+  };
+
+  const handleUpdateStatus = newStatus => {
+    setConversations(prev =>
+      prev.map(c => (c.id === selectedConv.id ? { ...c, leadStatus: newStatus } : c))
+    );
+    showToast(`Lead status updated to ${newStatus}`, 'success');
+  };
+
+  const handleUpdateFollowUp = newDate => {
+    if (!newDate) return;
+    const dateObj = new Date(newDate);
+    const formatted = dateObj.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    setConversations(prev =>
+      prev.map(c => (c.id === selectedConv.id ? { ...c, followUpDate: formatted } : c))
+    );
+    showToast(`Follow-up scheduled for ${formatted}`, 'success');
+  };
+
+  const handleAttachProduct = title => {
+    setIsAttachMenuOpen(false);
+    const newMsg = {
+      id: `prod-${Date.now()}`,
+      sender: 'bot',
+      text: `Shared catalogue preview: ${title}. Our master tailors are ready to assist with sizing and fabric trials.`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'read',
+      products: [
+        {
+          id: `p-${Date.now()}-1`,
+          title: 'Crisp White Oxford',
+          image: 'https://images.unsplash.com/photo-1620012253295-c15c429f66bf?auto=format&fit=crop&w=300&q=80',
+        },
+        {
+          id: `p-${Date.now()}-2`,
+          title: 'Sky Blue Chambray',
+          image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=300&q=80',
+        },
+        {
+          id: `p-${Date.now()}-3`,
+          title: 'Midnight Navy Slim',
+          image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=300&q=80',
+        },
+      ],
+    };
+
+    setConversations(prev =>
+      prev.map(c => {
+        if (c.id === selectedConv.id) {
+          return {
+            ...c,
+            lastMessage: `Shared catalogue preview: ${title}`,
+            time: 'Just now',
+            messages: [...c.messages, newMsg],
+          };
+        }
+        return c;
+      })
+    );
+    showToast(`Attached ${title} to conversation`, 'success');
   };
 
   const handleCreateLead = async () => {
@@ -373,7 +504,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
         source: 'AI Chatbot',
         preferredBranchId: assignedBranch,
         assignedBranchId: assignedBranch,
-        stage: 'New',
+        stage: selectedConv.leadStatus || 'New',
         consentToContact: true,
       });
 
@@ -399,57 +530,57 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
         <div className="px-4 pt-3.5 border-b border-slate-100 flex items-center justify-between text-xs select-none">
           <button
             onClick={() => setActiveTab('ALL')}
-            className={`pb-3 font-bold transition-all relative ${
+            className={`pb-3 font-bold transition-all relative cursor-pointer ${
               activeTab === 'ALL'
-                ? 'text-[#0f766e]'
+                ? 'text-[#004F4C]'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <span>All (24)</span>
             {activeTab === 'ALL' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0f766e] rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#004F4C] rounded-full" />
             )}
           </button>
 
           <button
             onClick={() => setActiveTab('OPEN')}
-            className={`pb-3 font-semibold transition-all relative ${
+            className={`pb-3 font-semibold transition-all relative cursor-pointer ${
               activeTab === 'OPEN'
-                ? 'text-[#0f766e] font-bold'
+                ? 'text-[#004F4C] font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <span>Open (8)</span>
             {activeTab === 'OPEN' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0f766e] rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#004F4C] rounded-full" />
             )}
           </button>
 
           <button
             onClick={() => setActiveTab('PENDING')}
-            className={`pb-3 font-semibold transition-all relative ${
+            className={`pb-3 font-semibold transition-all relative cursor-pointer ${
               activeTab === 'PENDING'
-                ? 'text-[#0f766e] font-bold'
+                ? 'text-[#004F4C] font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <span>Pending (3)</span>
             {activeTab === 'PENDING' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0f766e] rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#004F4C] rounded-full" />
             )}
           </button>
 
           <button
             onClick={() => setActiveTab('CLOSED')}
-            className={`pb-3 font-semibold transition-all relative ${
+            className={`pb-3 font-semibold transition-all relative cursor-pointer ${
               activeTab === 'CLOSED'
-                ? 'text-[#0f766e] font-bold'
+                ? 'text-[#004F4C] font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <span>Closed (13)</span>
             {activeTab === 'CLOSED' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0f766e] rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#004F4C] rounded-full" />
             )}
           </button>
         </div>
@@ -457,13 +588,13 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
         {/* Search Input Box */}
         <div className="p-3.5 pb-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200/90 rounded-xl outline-none focus:border-[#0f766e] placeholder-slate-400 transition-colors shadow-2xs"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200/90 rounded-xl outline-none focus:border-[#004F4C] placeholder-slate-400 transition-colors shadow-2xs"
             />
           </div>
         </div>
@@ -493,8 +624,8 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
                       className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-[#ccfbf1] text-[#0f766e] flex items-center justify-center font-bold text-xs shrink-0">
-                      <User className="w-5 h-5 text-[#0f766e]" />
+                    <div className="w-10 h-10 rounded-full bg-[#ccfbf1] text-[#004F4C] flex items-center justify-center font-bold text-xs shrink-0">
+                      <User className="w-5 h-5 text-[#004F4C]" />
                     </div>
                   )}
 
@@ -539,7 +670,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
                 className="w-10 h-10 rounded-full object-cover border border-slate-200"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-[#ccfbf1] text-[#0f766e] flex items-center justify-center font-bold text-xs">
+              <div className="w-10 h-10 rounded-full bg-[#ccfbf1] text-[#004F4C] flex items-center justify-center font-bold text-xs">
                 {selectedConv.avatar}
               </div>
             )}
@@ -554,25 +685,86 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
           </div>
 
           {/* Action Icons matching screenshot */}
-          <div className="flex items-center gap-1.5 text-slate-400">
+          <div className="flex items-center gap-1.5 text-slate-400 relative">
             <button
-              className="p-2 hover:bg-slate-100 rounded-lg hover:text-slate-700 transition-colors"
+              onClick={() => setIsInfoOpen(true)}
+              className="p-2 hover:bg-slate-100 rounded-lg hover:text-slate-700 transition-colors cursor-pointer"
               title="Conversation Info"
+              aria-label="Conversation Info"
             >
               <Info className="w-4 h-4" />
             </button>
             <button
-              className="p-2 hover:bg-slate-100 rounded-lg hover:text-slate-700 transition-colors"
-              title="Open External Chat"
+              onClick={() => setIsExpandOpen(true)}
+              className="p-2 hover:bg-slate-100 rounded-lg hover:text-slate-700 transition-colors cursor-pointer"
+              title="Expand Conversation"
+              aria-label="Expand Conversation"
             >
               <ExternalLink className="w-4 h-4" />
             </button>
-            <button
-              className="p-2 hover:bg-slate-100 rounded-lg hover:text-slate-700 transition-colors"
-              title="Options"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
+
+            {/* 3-Dot Options Context Menu */}
+            <div className="relative" ref={moreMenuRef}>
+              <button
+                onClick={() => setIsMoreMenuOpen(prev => !prev)}
+                className="p-2 hover:bg-slate-100 rounded-lg hover:text-slate-700 transition-colors cursor-pointer"
+                title="Options"
+                aria-label="Options"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {isMoreMenuOpen && (
+                <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-40 text-xs text-slate-700 animate-in fade-in duration-150">
+                  <button
+                    onClick={handleToggleStatus}
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    {selectedConv.status === 'CLOSED' ? (
+                      <>
+                        <RotateCcw className="w-4 h-4 text-emerald-600" />
+                        <span>Reopen Conversation</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Mark as Resolved</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleRequestHandover}
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <UserCheck className="w-4 h-4 text-[#008C83]" />
+                    <span>Request Staff Handover</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      handleCreateLead();
+                    }}
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 text-indigo-600" />
+                    <span>Create Sales Lead</span>
+                  </button>
+
+                  <a
+                    href={`https://wa.me/91${(selectedConv.phone || '9876543210').replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMoreMenuOpen(false)}
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    <span>Open Direct WhatsApp</span>
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -631,28 +823,72 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
         </div>
 
         {/* Input Bar matching screenshot */}
-        <div className="p-3.5 border-t border-slate-100 bg-white">
-          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-            <button
-              type="button"
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              title="Attach File or Product"
-            >
-              <Paperclip className="w-4 h-4" />
-            </button>
+        <div className="p-3.5 border-t border-slate-100 bg-white relative">
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            className="flex items-center gap-2"
+          >
+            {/* Attachment Button */}
+            <div className="relative" ref={attachMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsAttachMenuOpen(prev => !prev)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                title="Attach Catalogue / Product"
+                aria-label="Attach File"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+
+              {isAttachMenuOpen && (
+                <div className="absolute bottom-12 left-0 w-60 bg-white rounded-2xl shadow-xl border border-slate-200/90 p-2 z-40 text-xs space-y-1 animate-in fade-in duration-150">
+                  <div className="px-2.5 py-1 font-bold text-slate-900 text-[11px] border-b border-slate-100">
+                    Attach Garment Showcase
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAttachProduct('Formal Shirts Collection')}
+                    className="w-full p-2 text-left hover:bg-slate-50 rounded-xl flex items-center justify-between text-slate-700 cursor-pointer"
+                  >
+                    <span>👔 Formal Shirts</span>
+                    <span className="text-[10px] text-slate-400 font-mono">3 SKUs</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAttachProduct('Royal Wedding Suits')}
+                    className="w-full p-2 text-left hover:bg-slate-50 rounded-xl flex items-center justify-between text-slate-700 cursor-pointer"
+                  >
+                    <span>🤵 Wedding Suits</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Bespoke</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAttachProduct('Store Location Card')}
+                    className="w-full p-2 text-left hover:bg-slate-50 rounded-xl flex items-center justify-between text-slate-700 cursor-pointer"
+                  >
+                    <span>📍 Store Map Card</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Rajahmundry</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             <input
               type="text"
               value={inputMessage}
               onChange={e => setInputMessage(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 py-2 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-[#0f766e] text-slate-800 placeholder-slate-400 transition-all"
+              className="flex-1 py-2 px-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-[#004F4C] text-slate-800 placeholder-slate-400 transition-all"
             />
 
             <button
               type="submit"
-              className="w-10 h-10 rounded-xl bg-[#064e43] hover:bg-[#085a4e] active:bg-[#053e35] text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs"
+              className="w-10 h-10 rounded-xl bg-[#004F4C] hover:bg-[#003d3a] active:bg-[#002b29] text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs"
               title="Send Message"
+              aria-label="Send Message"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -672,7 +908,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
             </h3>
             <button
               onClick={handleCreateLead}
-              className="px-3 py-1.5 bg-[#0f766e] hover:bg-[#0d635c] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+              className="px-3 py-1.5 bg-[#004F4C] hover:bg-[#003d3a] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Create Lead</span>
@@ -718,7 +954,7 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
                 {selectedConv.interests.map(item => (
                   <span
                     key={item}
-                    className="px-2.5 py-0.5 rounded-full bg-[#dcfce7] text-[#0f766e] font-bold text-[11px]"
+                    className="px-2.5 py-0.5 rounded-full bg-[#dcfce7] text-[#004F4C] font-bold text-[11px]"
                   >
                     {item}
                   </span>
@@ -733,25 +969,35 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
                 <span>Lead Status</span>
               </div>
               <select
-                defaultValue={selectedConv.leadStatus}
-                className="py-1 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#0f766e] cursor-pointer shadow-2xs"
+                value={selectedConv.leadStatus || 'New'}
+                onChange={e => handleUpdateStatus(e.target.value)}
+                className="py-1 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#004F4C] cursor-pointer shadow-2xs"
               >
                 <option value="New">New</option>
+                <option value="In Progress">In Progress</option>
                 <option value="Follow-up">Follow-up</option>
                 <option value="Qualified">Qualified</option>
                 <option value="Converted">Converted</option>
               </select>
             </div>
 
-            {/* Follow-up Date */}
+            {/* Follow-up Date Field with Interactive Picker */}
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2 text-slate-500 font-medium">
                 <Calendar className="w-4 h-4 text-slate-400" />
                 <span>Follow-up</span>
               </div>
-              <div className="flex items-center gap-1.5 py-1 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-2xs cursor-pointer">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>{selectedConv.followUpDate}</span>
+              <div className="relative">
+                <input
+                  type="date"
+                  onChange={e => handleUpdateFollowUp(e.target.value)}
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                  title="Click to select follow-up date"
+                />
+                <div className="flex items-center gap-1.5 py-1 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-2xs transition-colors pointer-events-none">
+                  <Calendar className="w-3.5 h-3.5 text-[#008C83]" />
+                  <span>{selectedConv.followUpDate || 'Nov 20, 2025'}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -775,6 +1021,21 @@ export default function StaffChatInbox({ onNavigateToLeads }) {
           </div>
         </div>
       </div>
+
+      {/* Conversation Info Drawer */}
+      <ConversationInfoDrawer
+        isOpen={isInfoOpen}
+        onClose={() => setIsInfoOpen(false)}
+        conversation={selectedConv}
+      />
+
+      {/* Expanded Conversation Modal */}
+      <ConversationExpandModal
+        isOpen={isExpandOpen}
+        onClose={() => setIsExpandOpen(false)}
+        conversation={selectedConv}
+        onSendMessage={text => handleSendMessage(text)}
+      />
     </div>
   );
 }

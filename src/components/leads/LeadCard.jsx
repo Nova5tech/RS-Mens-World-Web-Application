@@ -16,11 +16,12 @@ export default function LeadCard({ lead, isSelected, onClick, onDragStart }) {
     <div
       draggable
       onDragStart={e => onDragStart && onDragStart(e, lead.id)}
-      onClick={() => onClick(lead)}
-      className={`bg-white p-3.5 rounded-2xl border transition-all cursor-pointer select-none space-y-2 shadow-2xs hover:shadow-xs ${isSelected
-        ? 'ring-2 ring-[#0f766e]/40 border-[#0f766e]'
-        : 'border-slate-100 hover:border-slate-200'
-        }`}
+      onClick={() => onClick && onClick(lead)}
+      className={`bg-white p-3.5 rounded-2xl border transition-all cursor-pointer select-none space-y-2 shadow-2xs hover:shadow-xs ${
+        isSelected
+          ? 'ring-2 ring-[#004F4C]/40 border-[#004F4C]'
+          : 'border-slate-100 hover:border-slate-200'
+      }`}
     >
       {/* Top Header: Customer Name and Stage Badge */}
       <div className="flex items-center justify-between gap-2">
@@ -46,7 +47,7 @@ export default function LeadCard({ lead, isSelected, onClick, onDragStart }) {
 
         <span className="flex items-center gap-1 text-slate-400 shrink-0">
           <Clock className="w-3 h-3 text-slate-400" />
-          <span>{lead.timeAgo || 'Today'}</span>
+          <span>{lead.followUpDateFormatted || lead.timeAgo || 'Today'}</span>
         </span>
       </div>
     </div>

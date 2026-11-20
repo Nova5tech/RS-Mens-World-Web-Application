@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   User,
@@ -13,6 +13,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext.jsx';
+import { getBranchDisplayName } from '../../config/branchConfig.js';
 
 export default function LeadDetailsPanel({
   lead,
@@ -22,6 +23,14 @@ export default function LeadDetailsPanel({
 }) {
   const { showToast } = useToast();
   const [selectedStage, setSelectedStage] = useState(lead?.stage || 'Follow-up');
+  const dateInputRef = useRef(null);
+
+  // Sync selected stage with active lead selection
+  useEffect(() => {
+    if (lead) {
+      setSelectedStage(lead.stage || 'Follow-up');
+    }
+  }, [lead?.id, lead?.stage]);
 
   if (!lead) return null;
 
@@ -74,8 +83,8 @@ export default function LeadDetailsPanel({
         {/* Identity Box */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#ccfbf1] text-[#0f766e] flex items-center justify-center font-bold text-xs shrink-0">
-              <User className="w-5 h-5 text-[#0f766e]" />
+            <div className="w-10 h-10 rounded-full bg-[#e6f7f2] text-[#008C83] flex items-center justify-center font-bold text-xs shrink-0">
+              <User className="w-5 h-5 text-[#008C83]" />
             </div>
             <div>
               <h4 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
@@ -103,7 +112,7 @@ export default function LeadDetailsPanel({
           <div className="flex items-center gap-3">
             <Store className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="font-medium text-slate-700">
-              {lead.branchLabel || lead.preferredBranchId || 'Branch 1 (Anna Nagar)'}
+              {getBranchDisplayName(lead.preferredBranchId, lead.branchLabel || 'Branch 1 – Rajahmandary Main Branch')}
             </span>
           </div>
 
@@ -115,12 +124,57 @@ export default function LeadDetailsPanel({
             </span>
           </div>
 
-          {/* Follow-up date */}
-          <div className="flex items-center gap-3">
-            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="font-medium text-slate-700">
-              Follow-up: {lead.followUpDateFormatted || 'Nov 20, 2025'}
-            </span>
+          {/* Follow-up date with Interactive Picker */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-slate-700 font-medium">
+              <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+              <span>Follow-up:</span>
+            </div>
+            <div className="relative">
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={lead.followUpDate ? lead.followUpDate.slice(0, 10) : ''}
+                onChange={async e => {
+                  if (!e.target.value) return;
+                  const [year, month, day] = e.target.value.split('-');
+                  const dateObj = new Date(year, month - 1, day);
+                  const formatted = dateObj.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  });
+                  if (onUpdateLead) {
+                    await onUpdateLead(lead.id, {
+                      followUpDate: e.target.value,
+                      followUpDateFormatted: formatted,
+                    });
+                    showToast(`Follow-up scheduled for ${formatted}`, 'success');
+                  }
+                }}
+                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                title="Click to select follow-up date"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (dateInputRef.current) {
+                    if ('showPicker' in HTMLInputElement.prototype) {
+                      try {
+                        dateInputRef.current.showPicker();
+                        return;
+                      } catch (err) {}
+                    }
+                    dateInputRef.current.focus();
+                    dateInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1.5 py-1 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs transition-colors cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5 text-[#008C83]" />
+                <span>{lead.followUpDateFormatted || 'Nov 20, 2025'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Lead Stage Select */}
@@ -132,7 +186,7 @@ export default function LeadDetailsPanel({
             <select
               value={selectedStage}
               onChange={handleStageChange}
-              className="py-1 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-[#0f766e] cursor-pointer shadow-2xs"
+              className="py-1 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-[#004F4C] cursor-pointer shadow-2xs"
             >
               <option value="New">New</option>
               <option value="In Progress">In Progress</option>
@@ -162,7 +216,7 @@ export default function LeadDetailsPanel({
         {/* Send WhatsApp */}
         <button
           onClick={handleSendWhatsApp}
-          className="w-full py-3 px-4 rounded-xl bg-[#064e43] hover:bg-[#085a4e] active:bg-[#053e35] text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3 px-4 rounded-xl bg-[#004F4C] hover:bg-[#003d3a] active:bg-[#002b29] text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
         >
           <MessageCircle className="w-4 h-4" />
           <span>Send WhatsApp</span>
@@ -180,9 +234,9 @@ export default function LeadDetailsPanel({
         {/* Mark as Converted */}
         <button
           onClick={handleMarkConverted}
-          className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-emerald-50 border border-slate-200 text-slate-700 hover:text-emerald-700 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+          className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#e6f7f2] border border-slate-200 text-slate-700 hover:text-[#004F4C] font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
         >
-          <Check className="w-4 h-4 text-emerald-600" />
+          <Check className="w-4 h-4 text-[#008C83]" />
           <span>Mark as Converted</span>
         </button>
       </div>

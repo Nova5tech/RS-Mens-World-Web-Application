@@ -541,7 +541,7 @@ export default function InventoryPage() {
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
               <span>
-                These products have fallen to or below the branch reorder threshold. Create a stock transfer from Rajahmundry warehouse or submit an inventory purchase PO.
+                These products have fallen to or below the branch reorder threshold. Create a stock transfer from Rajahmandary warehouse or submit an inventory purchase PO.
               </span>
             </div>
             <span className="font-bold text-amber-800 shrink-0 ml-3">

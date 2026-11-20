@@ -105,10 +105,10 @@ export default function ReportsPage() {
 
   // Branch performance metrics
   const branchPerformance = [
-    { name: 'Branch 1 – Anna Nagar', leads: 782, conv: '28.4%', revenue: '₹4.8L' },
-    { name: 'Branch 2 – Kukatpally', leads: 621, conv: '24.1%', revenue: '₹3.9L' },
-    { name: 'Branch 3 – Madhapur', leads: 487, conv: '22.8%', revenue: '₹3.1L' },
-    { name: 'Branch 4 – Gachibowli', leads: 596, conv: '25.6%', revenue: '₹3.7L' },
+    { name: 'Branch 1 – Rajahmandary Main Branch', leads: 782, conv: '28.4%', revenue: '₹4.8L' },
+    { name: 'Branch 2 – Kakinada Branch', leads: 621, conv: '24.1%', revenue: '₹3.9L' },
+    { name: 'Branch 3 – Vijayawada Branch', leads: 487, conv: '22.8%', revenue: '₹3.1L' },
+    { name: 'Branch 4 – Guntur Branch', leads: 596, conv: '25.6%', revenue: '₹3.7L' },
   ];
 
   return (

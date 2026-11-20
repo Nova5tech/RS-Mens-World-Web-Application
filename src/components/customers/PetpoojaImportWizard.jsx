@@ -14,19 +14,23 @@ import {
 import { parseCSV, generateSamplePetpoojaCSV } from '../../utils/csvParser.js';
 import { customerService } from '../../services/customerService.js';
 import { useBranch } from '../../context/BranchContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 
 export default function PetpoojaImportWizard({ isOpen, onClose, onImportComplete }) {
   if (!isOpen) return null;
 
   const { branches } = useBranch();
+  const { isBranchUser, currentUser } = useAuth();
   const { showToast } = useToast();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [fileName, setFileName] = useState('');
   const [parsedHeaders, setParsedHeaders] = useState([]);
   const [parsedRows, setParsedRows] = useState([]);
-  const [defaultBranch, setDefaultBranch] = useState('B1');
+  const [defaultBranch, setDefaultBranch] = useState(
+    isBranchUser ? (currentUser?.assignedBranchId || 'B1') : 'B1'
+  );
 
   const [fieldMapping, setFieldMapping] = useState({
     name: '',
@@ -180,22 +184,20 @@ export default function PetpoojaImportWizard({ isOpen, onClose, onImportComplete
             return (
               <div
                 key={s.num}
-                className={`flex items-center gap-2 ${
-                  isCurrent
-                    ? 'text-[#0f766e] font-bold'
-                    : isDone
+                className={`flex items-center gap-2 ${isCurrent
+                  ? 'text-[#0f766e] font-bold'
+                  : isDone
                     ? 'text-emerald-700 font-semibold'
                     : 'text-slate-400 font-medium'
-                }`}
+                  }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                    isCurrent
-                      ? 'bg-[#0f766e] text-white shadow-xs'
-                      : isDone
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isCurrent
+                    ? 'bg-[#0f766e] text-white shadow-xs'
+                    : isDone
                       ? 'bg-emerald-100 text-emerald-800'
                       : 'bg-slate-200 text-slate-500'
-                  }`}
+                    }`}
                 >
                   {isDone ? '✓' : s.num}
                 </span>
@@ -268,6 +270,23 @@ export default function PetpoojaImportWizard({ isOpen, onClose, onImportComplete
                       </option>
                     ))}
                   </select>
+                  {isBranchUser ? (
+                    <span className="text-xs py-1 px-2.5 bg-slate-100 border border-slate-200 rounded-xl font-semibold text-slate-700">
+                      {currentUser?.branchName || 'Rajahmandary Main Branch'}
+                    </span>
+                  ) : (
+                    <select
+                      value={defaultBranch}
+                      onChange={e => setDefaultBranch(e.target.value)}
+                      className="text-xs py-1 px-2.5 bg-[#f8fbfb] border border-slate-200 rounded-xl outline-none focus:border-[#0f766e] font-semibold text-slate-700 cursor-pointer"
+                    >
+                      {branches.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -333,21 +352,19 @@ export default function PetpoojaImportWizard({ isOpen, onClose, onImportComplete
               <div className="flex border-b border-slate-200 gap-4 text-xs font-semibold">
                 <button
                   onClick={() => setActiveTab('valid')}
-                  className={`pb-2 border-b-2 cursor-pointer ${
-                    activeTab === 'valid'
-                      ? 'border-[#0f766e] text-[#0f766e]'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
+                  className={`pb-2 border-b-2 cursor-pointer ${activeTab === 'valid'
+                    ? 'border-[#0f766e] text-[#0f766e]'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
                 >
                   Valid Records ({validationResult.validCount})
                 </button>
                 <button
                   onClick={() => setActiveTab('invalid')}
-                  className={`pb-2 border-b-2 cursor-pointer ${
-                    activeTab === 'invalid'
-                      ? 'border-[#0f766e] text-[#0f766e]'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
+                  className={`pb-2 border-b-2 cursor-pointer ${activeTab === 'invalid'
+                    ? 'border-[#0f766e] text-[#0f766e]'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
                 >
                   Rejected Rows ({validationResult.invalidCount})
                 </button>

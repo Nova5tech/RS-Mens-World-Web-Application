@@ -68,6 +68,17 @@ export const campaignService = {
       const branchList = campaignData.branches || campaignData.enabledBranchIds || ['B1'];
       const branchDisplay = branchList.sort().join(', ');
 
+      const perBranchDelivery = {};
+      branchList.forEach(bId => {
+        const bAud = audienceSummary.perBranch[bId] || 0;
+        perBranchDelivery[bId] = {
+          sent: campaignData.status === 'Sent' ? bAud : 0,
+          delivered: campaignData.status === 'Sent' ? Math.round(bAud * 0.98) : 0,
+          read: campaignData.status === 'Sent' ? Math.round(bAud * 0.84) : 0,
+          failed: campaignData.status === 'Sent' ? Math.round(bAud * 0.02) : 0,
+        };
+      });
+
       const newCampaign = {
         id: `CAMP-${Date.now().toString().slice(-3)}`,
         name: campaignData.name || campaignData.title || 'Untitled Campaign',
@@ -76,6 +87,7 @@ export const campaignService = {
         branches: branchList,
         branchesDisplay: branchDisplay,
         audience: audienceSummary.totalEligible || 21530,
+        branchAudience: audienceSummary.perBranch || {},
         status: campaignData.status || (campaignData.scheduleAt ? 'Scheduled' : 'Draft'),
         date: campaignData.status === 'Draft' ? '—' : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         template: campaignData.template || 'Product Announcement',
@@ -87,6 +99,7 @@ export const campaignService = {
           read: campaignData.status === 'Sent' ? Math.round(audienceSummary.totalEligible * 0.84) : 0,
           failed: campaignData.status === 'Sent' ? Math.round(audienceSummary.totalEligible * 0.02) : 0,
         },
+        branchDelivery: perBranchDelivery,
         deliveryRate: campaignData.status === 'Sent' ? '98.2%' : 'Pending',
         readRate: campaignData.status === 'Sent' ? '84.6%' : 'Pending',
         createdAt: new Date().toISOString(),

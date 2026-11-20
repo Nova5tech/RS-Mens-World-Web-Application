@@ -1,23 +1,53 @@
-import React, { useState } from 'react';
-import { X, UserPlus, Store, Tag, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, UserPlus, Store, Tag, ShieldCheck, Edit3, Lock } from 'lucide-react';
 import { useBranch } from '../../context/BranchContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { getBranchDisplayName } from '../../config/branchConfig.js';
 import { isValidIndianMobile } from '../../utils/formatters.js';
 
-export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }) {
+export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded, onCustomerUpdated, customerToEdit }) {
   if (!isOpen) return null;
 
   const { branches } = useBranch();
+  const { isBranchUser, currentUser } = useAuth();
   const { showToast } = useToast();
+
+  const isEditMode = Boolean(customerToEdit);
 
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
-  const [branchId, setBranchId] = useState('B1');
+  const [branchId, setBranchId] = useState(
+    isBranchUser ? (currentUser?.assignedBranchId || 'B1') : 'B1'
+  );
   const [customerType, setCustomerType] = useState('Regular');
   const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (customerToEdit) {
+      setName(customerToEdit.name || '');
+      const rawMobile = customerToEdit.phone || customerToEdit.mobile || '';
+      setMobile(rawMobile.replace(/\D/g, '').slice(-10));
+      setEmail(customerToEdit.email || '');
+      setBranchId(
+        isBranchUser
+          ? (currentUser?.assignedBranchId || 'B1')
+          : customerToEdit.branchId || (customerToEdit.branch === 'Branch 2' ? 'B2' : customerToEdit.branch === 'Branch 3' ? 'B3' : customerToEdit.branch === 'Branch 4' ? 'B4' : 'B1')
+      );
+      setCustomerType(customerToEdit.customerType || 'Regular');
+      setMarketingOptIn(customerToEdit.consent ?? true);
+    } else {
+      setName('');
+      setMobile('');
+      setEmail('');
+      setBranchId(isBranchUser ? (currentUser?.assignedBranchId || 'B1') : 'B1');
+      setCustomerType('Regular');
+      setMarketingOptIn(true);
+    }
+  }, [customerToEdit, isOpen, isBranchUser, currentUser]);
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -35,13 +65,42 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }) {
 
     try {
       setLoading(true);
+      const effectiveBranchId = isBranchUser ? (currentUser?.assignedBranchId || 'B1') : branchId;
+
+      if (isEditMode && onCustomerUpdated) {
+        const updated = {
+          ...customerToEdit,
+          name: name.trim(),
+          phone: `+91 ${mobile.trim()}`,
+          mobile: mobile.trim(),
+          email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
+          branchId: effectiveBranchId,
+          branch: effectiveBranchId === 'B2' ? 'Branch 2' : effectiveBranchId === 'B3' ? 'Branch 3' : effectiveBranchId === 'B4' ? 'Branch 4' : 'Branch 1',
+          branchDetail: getBranchDisplayName(effectiveBranchId),
+          customerType,
+          consent: marketingOptIn,
+          marketingOptIn,
+          status: customerToEdit.status || 'Active',
+        };
+        onCustomerUpdated(updated);
+        showToast('Customer profile updated successfully', 'success');
+        onClose();
+        return;
+      }
+
       const newCustomer = {
         id: `C-${Math.floor(10000 + Math.random() * 90000)}`,
         name: name.trim(),
+        phone: `+91 ${mobile.trim()}`,
         mobile: mobile.trim(),
         email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
-        branchId,
+        branchId: effectiveBranchId,
+        branch: effectiveBranchId === 'B2' ? 'Branch 2' : effectiveBranchId === 'B3' ? 'Branch 3' : effectiveBranchId === 'B4' ? 'Branch 4' : 'Branch 1',
+        branchDetail: getBranchDisplayName(effectiveBranchId),
         customerType,
+        status: 'New',
+        customerSince: 'Today',
+        consent: marketingOptIn,
         marketingOptIn,
         consentSource: 'In-Store Staff',
         consentDate: new Date().toISOString().slice(0, 10),
@@ -54,11 +113,13 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }) {
         },
       };
 
-      onCustomerAdded(newCustomer);
+      if (onCustomerAdded) {
+        onCustomerAdded(newCustomer);
+      }
       showToast('Customer record created successfully', 'success');
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to create customer');
+      setError(err.message || 'Failed to save customer');
     } finally {
       setLoading(false);
     }
@@ -74,11 +135,15 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }) {
         <div className="p-5 border-b border-[#D9E9E8] bg-[#f8fbfb] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[#e6f7f2] flex items-center justify-center text-[#008C83]">
-              <UserPlus className="w-5 h-5" />
+              {isEditMode ? <Edit3 className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Add New Customer</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Register customer profile & store assignment</p>
+              <h3 className="font-bold text-sm text-slate-900">
+                {isEditMode ? 'Edit Customer Profile' : 'Add New Customer'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isEditMode ? `Update details for ${customerToEdit?.name}` : 'Register customer profile & store assignment'}
+              </p>
             </div>
           </div>
           <button
@@ -122,17 +187,25 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }) {
             </div>
             <div>
               <label className="text-slate-700 font-semibold block mb-1.5 text-xs">Store Branch *</label>
-              <select
-                value={branchId}
-                onChange={e => setBranchId(e.target.value)}
-                className="w-full p-2.5 bg-[#f8fbfb] border border-slate-200 rounded-xl outline-none text-slate-700 text-xs font-medium cursor-pointer"
-              >
-                {branches.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
+              {isBranchUser ? (
+                <div className="flex items-center gap-2 p-2.5 bg-slate-100/90 border border-slate-200 rounded-xl text-slate-700 text-xs font-medium cursor-not-allowed select-none">
+                  <Store className="w-3.5 h-3.5 text-[#008C83]" />
+                  <span className="truncate">{currentUser?.branchName || 'Rajahmandary Main Branch'}</span>
+                  <Lock className="w-3 h-3 text-slate-400 ml-auto shrink-0" />
+                </div>
+              ) : (
+                <select
+                  value={branchId}
+                  onChange={e => setBranchId(e.target.value)}
+                  className="w-full p-2.5 bg-[#f8fbfb] border border-slate-200 rounded-xl outline-none text-slate-700 text-xs font-medium cursor-pointer"
+                >
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -186,7 +259,7 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }) {
               disabled={loading}
               className="px-5 py-2 bg-[#004F4C] hover:bg-[#003d3a] text-white rounded-xl font-semibold text-xs transition-colors shadow-xs cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Add Customer'}
+              {loading ? 'Saving...' : isEditMode ? 'Save Changes' : 'Add Customer'}
             </button>
           </div>
         </form>

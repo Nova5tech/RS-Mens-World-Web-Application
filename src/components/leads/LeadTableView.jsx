@@ -65,7 +65,7 @@ export default function LeadTableView({ leads, onSelectLead }) {
               <td className="p-3.5 pl-5 font-mono text-[11px] text-slate-500 font-medium">
                 {lead.id}
               </td>
-              <td className="p-3.5 font-bold text-slate-900 group-hover:text-[#0f766e] transition-colors">
+              <td className="p-3.5 font-bold text-slate-900 group-hover:text-[#004F4C] transition-colors">
                 {lead.name}
               </td>
               <td className="p-3.5 text-slate-600 font-mono text-[11px]">
@@ -93,10 +93,10 @@ export default function LeadTableView({ leads, onSelectLead }) {
                 </span>
               </td>
               <td className="p-3.5 text-slate-400 text-[11px] font-medium">
-                {lead.timeAgo || 'Today'}
+                {lead.followUpDateFormatted || lead.timeAgo || 'Today'}
               </td>
               <td className="p-3.5 pr-5 text-right">
-                <button className="text-slate-400 group-hover:text-[#0f766e] transition-colors p-1">
+                <button className="text-slate-400 group-hover:text-[#004F4C] transition-colors p-1">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </td>

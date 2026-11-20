@@ -32,7 +32,7 @@ const STORAGE_KEYS = {
   RETURNS: 'rs_returns',
   LEDGER: 'rs_ledger',
   CLOSINGS: 'rs_closings',
-  INIT_FLAG: 'rs_initialized_v3',
+  INIT_FLAG: 'rs_initialized_v4',
 };
 
 export const INITIAL_AUDIT_LOGS = [
@@ -116,7 +116,34 @@ export const mockStorage = {
   // Branches
   getBranches: () => {
     initLocalStorage();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.BRANCHES) || '[]');
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.BRANCHES) || '[]');
+      if (Array.isArray(stored) && stored.length > 0) {
+        // Safe migration: synchronize canonical names while preserving all custom state & flags
+        const canonicalMap = {
+          B1: 'Rajahmandary Main Branch',
+          B2: 'Kakinada Branch',
+          B3: 'Vijayawada Branch',
+          B4: 'Guntur Branch',
+        };
+        let updated = false;
+        const synced = stored.map(b => {
+          if (canonicalMap[b.id] && b.name !== canonicalMap[b.id]) {
+            updated = true;
+            return { ...b, name: canonicalMap[b.id] };
+          }
+          return b;
+        });
+        if (updated) {
+          localStorage.setItem(STORAGE_KEYS.BRANCHES, JSON.stringify(synced));
+          return synced;
+        }
+        return stored;
+      }
+    } catch (e) {
+      console.warn('Error syncing branches in storage', e);
+    }
+    return INITIAL_BRANCHES;
   },
   saveBranches: branches => {
     localStorage.setItem(STORAGE_KEYS.BRANCHES, JSON.stringify(branches));
@@ -125,7 +152,28 @@ export const mockStorage = {
   // Customers
   getCustomers: () => {
     initLocalStorage();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS) || '[]');
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS) || '[]');
+      if (Array.isArray(stored) && stored.length > 0) {
+        // Safe migration: ensure enriched customer records are present
+        const hasEnriched = stored.some(c => c.id === 'C-10258');
+        if (!hasEnriched) {
+          const merged = [...INITIAL_CUSTOMERS];
+          // Keep any newly added user customers not in INITIAL_CUSTOMERS
+          stored.forEach(c => {
+            if (!merged.some(m => m.id === c.id)) {
+              merged.push(c);
+            }
+          });
+          localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(merged));
+          return merged;
+        }
+        return stored;
+      }
+    } catch (e) {
+      console.warn('Error reading customers from storage', e);
+    }
+    return INITIAL_CUSTOMERS;
   },
   saveCustomers: customers => {
     localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
@@ -182,7 +230,21 @@ export const mockStorage = {
   // Campaigns
   getCampaigns: () => {
     initLocalStorage();
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.CAMPAIGNS) || '[]');
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.CAMPAIGNS) || '[]');
+      if (Array.isArray(stored) && stored.length > 0) {
+        // Safe check: if stored campaigns lack branchAudience, refresh with enriched INITIAL_CAMPAIGNS
+        const hasBreakdown = stored.some(c => c.branchAudience);
+        if (!hasBreakdown) {
+          localStorage.setItem(STORAGE_KEYS.CAMPAIGNS, JSON.stringify(INITIAL_CAMPAIGNS));
+          return INITIAL_CAMPAIGNS;
+        }
+        return stored;
+      }
+    } catch (e) {
+      console.warn('Error reading campaigns from storage', e);
+    }
+    return INITIAL_CAMPAIGNS;
   },
   saveCampaigns: campaigns => {
     localStorage.setItem(STORAGE_KEYS.CAMPAIGNS, JSON.stringify(campaigns));

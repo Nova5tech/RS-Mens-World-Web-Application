@@ -1,5 +1,8 @@
 import { USE_MOCKS, apiClient } from './apiClient.js';
 import { mockStorage, delay } from '../mocks/mockStorage.js';
+import { CANONICAL_BRANCHES, getBranchById, getBranchDisplayName, getBranchShortName } from '../config/branchConfig.js';
+
+export { CANONICAL_BRANCHES, getBranchById, getBranchDisplayName, getBranchShortName };
 
 export const branchService = {
   async getBranches() {

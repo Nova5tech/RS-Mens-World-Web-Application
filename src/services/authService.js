@@ -7,10 +7,10 @@ const AUTH_STORAGE_KEY = 'rs_auth_session';
  * SYNTHETIC DEMO ACCOUNTS
  * Exact match with the reference login design:
  * - Super Admin (All branches · Full access)
- * - Branch 1 User (Anna Nagar Branch)
- * - Branch 2 User (Kukatpally Branch)
- * - Branch 3 User (Madhapur Branch)
- * - Branch 4 User (Gachibowli Branch)
+ * - Branch 1 User (Rajahmundry Main Branch)
+ * - Branch 2 User (Kakinada Branch)
+ * - Branch 3 User (Vijayawada Branch)
+ * - Branch 4 User (Guntur Branch)
  */
 export const SYNTHETIC_ACCOUNTS = [
   {
@@ -35,8 +35,8 @@ export const SYNTHETIC_ACCOUNTS = [
     email: 'branch1@rsmensworld.com',
     role: 'branch_user',
     assignedBranchId: 'B1',
-    branchName: 'Anna Nagar Branch',
-    displaySubtitle: 'Anna Nagar Branch',
+    branchName: 'Rajahmandary Main Branch',
+    displaySubtitle: 'Branch 1 – Rajahmandary Main Branch',
     demoPin: '1111',
     legacyPin: '1001',
     avatar: 'B1',
@@ -49,8 +49,8 @@ export const SYNTHETIC_ACCOUNTS = [
     email: 'branch2@rsmensworld.com',
     role: 'branch_user',
     assignedBranchId: 'B2',
-    branchName: 'Kukatpally Branch',
-    displaySubtitle: 'Kukatpally Branch',
+    branchName: 'Kakinada Branch',
+    displaySubtitle: 'Branch 2 – Kakinada Branch',
     demoPin: '2222',
     legacyPin: '1002',
     avatar: 'B2',
@@ -63,8 +63,8 @@ export const SYNTHETIC_ACCOUNTS = [
     email: 'branch3@rsmensworld.com',
     role: 'branch_user',
     assignedBranchId: 'B3',
-    branchName: 'Madhapur Branch',
-    displaySubtitle: 'Madhapur Branch',
+    branchName: 'Vijayawada Branch',
+    displaySubtitle: 'Branch 3 – Vijayawada Branch',
     demoPin: '3333',
     legacyPin: '1003',
     avatar: 'B3',
@@ -77,8 +77,8 @@ export const SYNTHETIC_ACCOUNTS = [
     email: 'branch4@rsmensworld.com',
     role: 'branch_user',
     assignedBranchId: 'B4',
-    branchName: 'Gachibowli Branch',
-    displaySubtitle: 'Gachibowli Branch',
+    branchName: 'Guntur Branch',
+    displaySubtitle: 'Branch 4 – Guntur Branch',
     demoPin: '4444',
     legacyPin: '1004',
     avatar: 'B4',
@@ -118,7 +118,9 @@ const mockAuthService = {
     };
 
     try {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+      }
     } catch (e) {
       console.warn('Unable to persist session to localStorage', e);
     }
@@ -129,6 +131,7 @@ const mockAuthService = {
   async getCurrentUser() {
     await delay(60);
     try {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (!stored) return null;
 
@@ -146,7 +149,9 @@ const mockAuthService = {
   async logout() {
     await delay(80);
     try {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
     } catch (e) {
       console.warn('Error clearing session', e);
     }

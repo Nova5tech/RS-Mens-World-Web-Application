@@ -12,6 +12,8 @@ export default function LeadKanbanBoard({
   selectedLeadId,
   onSelectLead,
   onStageChange,
+  focusedStage,
+  onToggleFocusStage,
 }) {
   const [draggedLeadId, setDraggedLeadId] = useState(null);
   const [activeDropStage, setActiveDropStage] = useState(null);
@@ -90,6 +92,8 @@ export default function LeadKanbanBoard({
           return false;
         });
         const isDropTarget = activeDropStage === col.id;
+        const isFocused = focusedStage === col.id;
+        const isDimmed = focusedStage && !isFocused;
 
         return (
           <div
@@ -97,20 +101,33 @@ export default function LeadKanbanBoard({
             onDragOver={e => handleDragOver(e, col.id)}
             onDragLeave={() => handleDragLeave(col.id)}
             onDrop={e => handleDrop(e, col.id)}
-            className={`flex flex-col rounded-2xl p-1.5 transition-all min-h-[300px] ${isDropTarget
-              ? 'bg-[#e6f7f2] ring-2 ring-[#0f766e]'
-              : 'bg-transparent'
-              }`}
+            className={`flex flex-col rounded-2xl p-1.5 transition-all min-h-[300px] ${
+              isDropTarget
+                ? 'bg-[#e6f7f2] ring-2 ring-[#004F4C]'
+                : 'bg-transparent'
+            } ${isDimmed ? 'opacity-40 hover:opacity-85' : 'opacity-100'}`}
           >
-            {/* Column Header Pill matching Screenshot */}
-            <div
-              className={`px-3 py-2 rounded-xl flex items-center justify-between font-bold text-xs mb-2.5 shadow-2xs ${col.pillStyle}`}
+            {/* Column Header Pill with Interactive Stage Focus */}
+            <button
+              type="button"
+              onClick={() => onToggleFocusStage && onToggleFocusStage(col.id)}
+              className={`w-full px-3 py-2 rounded-xl flex items-center justify-between font-bold text-xs mb-2.5 shadow-2xs transition-all cursor-pointer ${col.pillStyle} ${
+                isFocused
+                  ? 'ring-2 ring-[#004F4C] shadow-xs'
+                  : 'hover:opacity-90'
+              }`}
+              title={isFocused ? 'Click to show all stages' : `Click to focus on ${col.title} leads`}
             >
               <div className="flex items-center gap-1.5 truncate">
                 <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{col.title} ({col.badgeCount || stageLeads.length})</span>
+                <span className="truncate">{col.title} ({stageLeads.length})</span>
               </div>
-            </div>
+              {isFocused && (
+                <span className="text-[10px] font-bold bg-[#004F4C] text-white px-1.5 py-0.5 rounded-full shrink-0">
+                  Focused
+                </span>
+              )}
+            </button>
 
             {/* Cards List */}
             <div className="space-y-2.5">

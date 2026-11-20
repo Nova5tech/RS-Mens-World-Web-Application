@@ -1,0 +1,7 @@
+name: fix-whatsapp-campaign-rbac-and-filters
+title: Fix WhatsApp Campaigns Role-Based Access and Functionality
+status: in-progress
+version: 1.0.0
+owner: Frontend Engineering
+created: 2026-11-19
+description: Implement strict role-based access control, branch-isolated campaign visibility and metrics, functional filter drawer, and role-appropriate right panel (Admin Campaign Builder vs Branch User Read-Only Details).
