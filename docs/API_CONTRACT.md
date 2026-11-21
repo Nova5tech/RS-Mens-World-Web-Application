@@ -824,3 +824,169 @@ Receives asynchronous inbound status receipts (`sent`, `delivered`, `read`, `fai
 - Customer replies with `STOP` or `UNSUBSCRIBE` must automatically set `opted_out_at` on the matching customer record and immediately exclude them from future broadcast audiences.
 - Inbound messages are routed to `/chatbot` customer conversation threads.
 - Outbound WhatsApp messages must be throttled according to Meta account messaging tiers (1K, 10K, 100K per 24 hours).
+
+
+---
+
+## 8. Lead Generation Endpoints (Phase 6)
+
+### 8.1 Leads Management
+
+#### `GET /leads`
+Retrieve paginated list of leads with filtering by branch, stage, priority, source, follow-up status, and full-text search.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` is strictly scoped to their assigned `branch_id`. `super_admin` can filter by `branch_id` or view all branches.
+- **Query Parameters**:
+  - `page` (integer, default: 1): 1-based page index
+  - `pageSize` (integer, default: 20): items per page
+  - `branch_id` (string, optional): Branch identifier (`branch_1`, etc.)
+  - `stage` (string, optional): `new` | `in_progress` | `follow_up` | `converted` | `lost` | `all`
+  - `priority` (string, optional): `high` | `medium` | `low` | `all`
+  - `source` (string, optional): `website_chat` | `whatsapp` | `walk_in` | `instagram` | `referral` | `phone_call` | `all`
+  - `follow_up` (string, optional): `overdue` | `today` | `this_week` | `all`
+  - `search` (string, optional): Search query matching customer name, phone, enquiry, ID
+  - `show_lost` (boolean, optional, default: false)
+- **Response `200 OK`**:
+```json
+{
+  "items": [
+    {
+      "id": "L-3823",
+      "customer_name": "Amit Joshi",
+      "phone": "+919833344556",
+      "enquiry": "Store location and timing for weekend visit. Looking for executive formal blazers.",
+      "branch_id": "branch_1",
+      "stage": "new",
+      "priority": "medium",
+      "source": "whatsapp",
+      "interest_tags": ["Formal Wear", "Blazers", "Store Info"],
+      "follow_up_date": "2026-11-21",
+      "consent_whatsapp": true,
+      "ai_summary": {
+        "category": "store_info",
+        "suggested_priority": "medium",
+        "bullets": [
+          "Requested location pin and weekend store timings for Rajahmundry branch",
+          "Looking for slim-fit blazer options for business conference"
+        ],
+        "generated_at": "2026-11-21T08:30:00Z"
+      },
+      "notes": [],
+      "activities": [
+        {
+          "id": "la_004",
+          "type": "created",
+          "description": "Lead created via WhatsApp Business API inbound",
+          "user_name": "System",
+          "created_at": "2026-11-21T08:30:00Z"
+        }
+      ],
+      "created_at": "2026-11-21T08:30:00Z",
+      "updated_at": "2026-11-21T08:30:00Z"
+    }
+  ],
+  "total": 60,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 3
+}
+```
+
+#### `GET /leads/counts`
+Retrieve counts per stage for the current user's branch scope.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Query Parameters**:
+  - `branch_id` (optional): Filter counts by branch
+- **Response `200 OK`**:
+```json
+{
+  "total": 60,
+  "new": 13,
+  "in_progress": 8,
+  "follow_up": 4,
+  "converted": 5,
+  "lost": 30
+}
+```
+
+#### `GET /leads/{id}`
+Retrieve a single lead with complete notes timeline, AI classification, and audit activity history.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` cannot access leads belonging to other branches (`403 Forbidden`).
+- **Response `200 OK`**: Returns `Lead` object.
+
+#### `POST /leads`
+Create a new lead manually from store walk-in, phone, or referral.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` can only create leads for their own branch. `super_admin` can assign any branch. If no branch is provided, the backend auto-assigns: (1) preferred branch, (2) branch of an existing customer with matching phone, (3) fallback to `branch_1` (Rajahmundry Main).
+- **Request Body**:
+```json
+{
+  "customer_name": "Karthik Raja",
+  "phone": "+919876577889",
+  "enquiry": "Italian fabric formal blazers for reception cocktail.",
+  "preferred_branch_id": "branch_3",
+  "interest_tags": ["Italian Blazer", "Cocktail", "Formal"],
+  "source": "referral",
+  "priority": "high",
+  "follow_up_date": "2026-11-22",
+  "consent_whatsapp": true
+}
+```
+- **Response `201 Created`**: Returns created `Lead` object with generated ID (e.g. `L-3861`).
+
+#### `PATCH /leads/{id}`
+Update lead profile, interest tags, follow-up date, or priority.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**: Returns updated `Lead` object.
+
+#### `PATCH /leads/{id}/stage`
+Update lead lifecycle stage (e.g. dragging between Kanban columns).
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "stage": "lost",
+  "lost_reason": "price",
+  "lost_notes": "Customer budget below entry range"
+}
+```
+- **Response `200 OK`**: Returns updated `Lead` object with logged stage change activity.
+
+#### `POST /leads/{id}/notes`
+Add a timestamped consultation note or interaction log to a lead.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "content": "Customer visited store with groom for sizing trial."
+}
+```
+- **Response `201 Created`**: Returns created `LeadNote` object.
+
+#### `POST /leads/{id}/convert`
+Convert lead to `converted` stage and optionally provision a customer profile.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "addToCustomers": true
+}
+```
+- **Response `200 OK`**:
+```json
+{
+  "lead": {
+    "id": "L-3816",
+    "stage": "converted",
+    "converted_customer_id": "c_003"
+  },
+  "customerCreated": true
+}
+```
+*Note*: If a customer profile with this phone number already exists, it is linked to `converted_customer_id` without creating duplicates.
+
+#### `POST /leads/{id}/ai-classify`
+Re-analyze lead inquiry and tags with AI model to generate updated category, suggested priority, and bullet points.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**: Returns `LeadAISummary` object.

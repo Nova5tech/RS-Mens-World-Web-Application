@@ -188,6 +188,79 @@ export interface CampaignSettings {
   quiet_hours_end: string;
 }
 
+// -------------------------------------------------------------
+// LEADS
+// -------------------------------------------------------------
+export type LeadStage = 'new' | 'in_progress' | 'follow_up' | 'converted' | 'lost';
+export type LeadPriority = 'high' | 'medium' | 'low';
+export type LeadSource = 'website_chat' | 'whatsapp' | 'walk_in' | 'instagram' | 'referral' | 'phone_call';
+
+export interface LeadNote {
+  id: string;
+  content: string;
+  author_id?: string;
+  author_name: string;
+  created_at: string;
+}
+
+export interface LeadActivity {
+  id: string;
+  type: 'created' | 'stage_change' | 'priority_change' | 'note_added' | 'converted' | 'assigned';
+  description: string;
+  user_name: string;
+  created_at: string;
+}
+
+export interface LeadAISummary {
+  category: 'wedding_occasion' | 'bulk_corporate' | 'product_enquiry' | 'store_info' | 'other';
+  suggested_priority: LeadPriority;
+  bullets: string[];
+  generated_at: string;
+}
+
+export interface Lead {
+  id: string; // e.g. "L-3823"
+  customer_name: string;
+  phone: string;
+  enquiry: string;
+  branch_id: string;
+  stage: LeadStage;
+  priority: LeadPriority;
+  source: LeadSource;
+  interest_tags: string[];
+  follow_up_date?: string; // YYYY-MM-DD
+  consent_whatsapp: boolean;
+  lost_reason?: 'not_interested' | 'price' | 'out_of_stock' | 'no_response' | 'other';
+  lost_notes?: string;
+  converted_customer_id?: string;
+  ai_summary?: LeadAISummary;
+  notes: LeadNote[];
+  activities: LeadActivity[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadFilterOptions {
+  branch_id?: string;
+  priority?: 'all' | LeadPriority;
+  source?: 'all' | LeadSource;
+  follow_up?: 'all' | 'overdue' | 'today' | 'this_week' | 'custom';
+  search?: string;
+  stage?: 'all' | LeadStage;
+  show_lost?: boolean;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  type: 'lead_followup' | 'campaign_done' | 'import_done' | 'chat_pending';
+  read: boolean;
+  link?: string;
+  lead_id?: string;
+  created_at: string;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;

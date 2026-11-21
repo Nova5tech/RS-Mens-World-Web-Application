@@ -169,3 +169,28 @@
   - Delivery rates and recipient counts in report modal match campaign records.
   - Retry failed simulates re-sending failed messages and updates delivery metrics.
   - TypeScript & Vite build clean (`npm run build` zero errors).
+
+## Phase 6 — Lead Generation
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/leads/LeadsPage.tsx`: Pixel-close match to `docs/design/06-leads-kanban-drawer.png`, `06-leads-filter-panel.png`, and `06-leads-table.png`. Segmented view switch (**Kanban | Table** with primary filled active state), search bar (`Search leads, name or phone...`), Filters popover button with active-filter badge, and `+ Add Lead` primary button.
+  - `src/features/leads/KanbanBoard.tsx` & `src/features/leads/KanbanColumn.tsx`: Interactive drag & drop Kanban board powered by `@dnd-kit/core` across 5 stages (**New**, **In Progress**, **Follow-up**, **Converted**, **Lost**) with column counts, tinted header pills, card hover actions (WhatsApp, Call), overdue/today indicators, and "Show Lost" toggle.
+  - `src/features/leads/LeadCard.tsx`: Rich lead card with mono ID, customer name, stage pill, enquiry clamp, branch badge, follow-up date status (red if overdue, amber if today), high-priority badges, and quick contact links.
+  - `src/features/leads/LeadTable.tsx`: Pixel-close match to `06-leads-table.png` with sortable columns, checkboxes, formatted phone numbers, branch icons, stage pills, pagination, and row click drawer opening.
+  - `src/features/leads/LeadDetailsDrawer.tsx`: Pixel-close match to `06-leads-kanban-drawer.png` featuring customer hero avatar, contact actions, interest tags, follow-up date picker with "Today" / "Tomorrow" / "+3 Days" chips, stage dropdown, priority dropdown, AI Insights card with category, suggested priority and bullets, consultation notes timeline with composer, activity log, "Convert to Customer", and "Mark Lost".
+  - `src/features/leads/AddLeadDrawer.tsx`: Full lead creation drawer with 10-digit mobile validation, branch auto-assignment, interest tags, priority, source, and WhatsApp marketing consent checkbox.
+  - `src/features/leads/FilterLeadsPopover.tsx`: Popover filter matching `06-leads-filter-panel.png` with Store Branch selector (locked for branch users), Priority segmented control, Enquiry Source selector, Follow-up date ranges, Clear, and Apply actions.
+  - `src/features/leads/ConvertLeadDialog.tsx`: Confirmation dialog ensuring single customer creation or linking existing records by phone without duplicates.
+  - `src/features/leads/LostReasonDialog.tsx`: Requires selection of lost reason (Not interested, Price, Out of stock, No response, Other) and optional notes.
+  - `src/types/models.ts`: Added `Lead`, `LeadStage`, `LeadPriority`, `LeadSource`, `LeadNote`, `LeadActivity`, `LeadAISummary`, `LeadFilterOptions`.
+  - `src/mocks/data/leads.ts`: Seeded 60 realistic Indian leads across stages, branches, and sources matching design mockups.
+  - `src/services/leads.ts`: Comprehensive lead service with branch isolation, auto-assignment rule (preferred branch -> customer phone branch -> B1), stage transition audit trails, customer creation on conversion, and rule-based AI classification.
+  - `docs/API_CONTRACT.md`: Documented Section 8 Lead Generation Endpoints (`GET/POST /leads`, `GET/PATCH /leads/{id}`, `PATCH /leads/{id}/stage`, `POST /leads/{id}/notes`, `POST /leads/{id}/convert`, `POST /leads/{id}/ai-classify`, `GET /leads/counts`).
+- **Self-Check Results**:
+  - Dragging a card to Follow-up immediately persists to `localStorage` and reflects in Table view.
+  - Kanban counts match Table counts across all branches.
+  - Converting a lead provisions exactly one customer profile or reuses existing phone record without duplication.
+  - Branch 2 user is strictly scoped to Branch 2 leads; branch selector is disabled.
+  - Filters (Branch, Priority, Source, Follow-up) and text search combine cleanly.
+  - Auto-assignment rule verified: preferred branch selected -> fallback to customer's previous branch -> fallback to Branch 1.
+  - TypeScript & Vite build clean (`npm run build` zero errors).
