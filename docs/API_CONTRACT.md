@@ -543,3 +543,139 @@ Retrieve details and row validation log of a specific import batch.
 
 - **Access**: Authenticated (`super_admin`, `branch_user`)
 - **Response `200 OK`**: Returns `ImportBatch` object.
+
+---
+
+## 6. Content Library Endpoints (Phase 4)
+
+### 6.1 Media Assets
+
+#### `GET /media`
+Retrieve media asset library for campaign headers and promotional messaging.
+
+- **Access**: `super_admin` only
+- **Response `200 OK`**: Array of `MediaAsset` objects.
+
+#### `POST /media`
+Upload new media asset poster or banner.
+
+- **Access**: `super_admin` only
+- **Request Body**:
+```json
+{
+  "title": "Winter Collection Launch Banner",
+  "kind": "New Arrival",
+  "storage_path": "data:image/jpeg;base64,..."
+}
+```
+- **Response `201 Created`**: Returns created `MediaAsset`.
+
+#### `DELETE /media/{id}`
+Remove media asset.
+
+- **Access**: `super_admin` only
+- **Response `204 No Content`**
+
+### 6.2 Message Templates
+
+#### `GET /templates`
+Retrieve message templates list.
+
+- **Access**: Authenticated (`super_admin`, `branch_user` read-only)
+- **Response `200 OK`**: Array of `MessageTemplate` objects.
+
+#### `POST /templates`
+Create new Meta WhatsApp message template.
+
+- **Access**: `super_admin` only
+- **Request Body**:
+```json
+{
+  "name": "Winter Collection Launch",
+  "category": "Promotional",
+  "body": "Hello {{customer_name}}! Check out our new arrivals at {{branch_name}}.",
+  "variables": ["customer_name", "branch_name"],
+  "header_image_url": "https://...",
+  "cta_text": "Visit Nearest Store",
+  "cta_url": "https://...",
+  "meta_template_name": "winter_launch_v1",
+  "meta_status": "Approved"
+}
+```
+- **Response `201 Created`**: Returns created `MessageTemplate`.
+
+#### `PATCH /templates/{id}`
+Update message template or Meta status.
+
+- **Access**: `super_admin` only
+- **Response `200 OK`**: Returns updated `MessageTemplate`.
+
+#### `DELETE /templates/{id}`
+Delete a template.
+
+- **Access**: `super_admin` only
+- **Response `204 No Content`**
+
+### 6.3 Audience Segments
+
+#### `GET /segments`
+Retrieve all dynamic customer audience segments with computed matching counts.
+
+- **Access**: Authenticated (`super_admin`, `branch_user` read-only)
+- **Response `200 OK`**: Array of `Segment` objects including `customer_count` and `branch_counts`.
+
+#### `POST /segments`
+Create a new customer audience segment with filtering rules.
+
+- **Access**: `super_admin` only
+- **Request Body**:
+```json
+{
+  "name": "Birthday in December",
+  "rules_json": {
+    "birthday_month": 12,
+    "opted_in_only": true
+  }
+}
+```
+- **Response `201 Created`**: Returns created `Segment`.
+
+#### `POST /segments/preview-count`
+Calculate live customer audience counts matching segment rules across all branches.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "rules": {
+    "branch_id": null,
+    "birthday_month": 12,
+    "customer_type": "all",
+    "opted_in_only": true
+  }
+}
+```
+- **Response `200 OK`**:
+```json
+{
+  "totalCount": 18,
+  "branchCounts": {
+    "branch_1": 6,
+    "branch_2": 4,
+    "branch_3": 5,
+    "branch_4": 3
+  }
+}
+```
+
+#### `PATCH /segments/{id}`
+Update segment rules and criteria.
+
+- **Access**: `super_admin` only
+- **Response `200 OK`**: Returns updated `Segment`.
+
+#### `DELETE /segments/{id}`
+Delete audience segment.
+
+- **Access**: `super_admin` only
+- **Response `204 No Content`**

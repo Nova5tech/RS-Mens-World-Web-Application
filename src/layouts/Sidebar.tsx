@@ -19,6 +19,7 @@ import {
   Store,
   ChevronDown,
   X,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranchContext } from '@/contexts/BranchContext';
@@ -66,6 +67,7 @@ const navGroups: NavGroup[] = [
       { name: 'Lead Generation', path: '/leads', icon: Target },
       { name: 'Customers', path: '/customers', icon: Users },
       { name: 'WhatsApp Campaigns', path: '/campaigns', icon: Megaphone },
+      { name: 'Content Library', path: '/content', icon: Layers, adminOnly: true },
     ],
   },
   {

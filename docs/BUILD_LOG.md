@@ -13,6 +13,24 @@
   - Mobile layout verified (<1024px displays centered card on dark green background).
   - TypeScript & Vite build clean (`npm run build` zero errors).
 
+## Phase 4 — Content Library (Super Admin only)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/content/ContentLibraryPage.tsx`: Admin-only Content Library hub with three tabs (**Media Assets**, **Message Templates**, **Audience Segments**) and real-time item counts.
+  - `src/features/content/MediaLibraryTab.tsx`: Grid of media cards with thumbnails, title, kind pills (Offer, New Arrival, Festival, Greeting), upload date, user badge, and Upload Modal supporting file selection and preview.
+  - `src/features/content/TemplatesTab.tsx`: Meta WhatsApp message templates table with approval status pills (Approved, Pending, Rejected), drawer editor with variable tags (`{{customer_name}}`, `{{branch_name}}`, `{{offer_text}}`), and live WhatsApp phone preview bubble matching `docs/design/05-campaigns-wizard.png`.
+  - `src/features/content/SegmentsTab.tsx`: Customer audience segments list with customer count, per-branch matching cards, and Segment Builder drawer with live audience counter evaluated against current customer database.
+  - `src/types/models.ts`: Added `MediaAsset`, `MessageTemplate`, `Segment`, `SegmentRules`, `TemplateCategory`, and `MetaTemplateStatus`.
+  - `src/mocks/data/content.ts`: Seeded 6 media assets, 8 message templates (Winter Collection Launch, Festive Offer Flat 20%, New Arrivals Formal Shirts, Birthday Wish, Anniversary Wish, Diwali Greetings, Loyal Customer Reward, Store Opening Hours), and 5 dynamic segments.
+  - `src/services/content.ts`: Implemented media, template, and segment CRUD with live preview calculation `previewSegmentCount`.
+  - `src/layouts/Sidebar.tsx` & `src/app/router.tsx`: Added `/content` to sidebar under Customer Engagement (admin only) and protected by `ProtectedRoute adminOnly`.
+  - `docs/API_CONTRACT.md`: Documented Section 6 Content Library Endpoints (`GET/POST/DELETE /media`, `GET/POST/PATCH/DELETE /templates`, `GET/POST/PATCH/DELETE /segments`, `POST /segments/preview-count`).
+- **Self-Check Results**:
+  - Uploading a new poster displays in the media grid.
+  - Segment "Birthday in December" count matches the calculated count of customer mock records born in month 12.
+  - Branch users are strictly blocked from `/content` via route guard and hidden sidebar item.
+  - TypeScript & Vite build clean (`npm run build` zero errors).
+
 ## Phase 3 — Customer Database + Petpooja Import (connector #1)
 - **Status**: Completed & Verified
 - **Files Added / Changed**:
@@ -34,6 +52,24 @@
   - Branch 1 user sees only Branch 1 customers.
   - Tab counts (All, New, Active, Inactive) match filtered customer totals.
   - CSV export downloads clean UTF-8 BOM file readable by Excel.
+  - TypeScript & Vite build clean (`npm run build` zero errors).
+
+## Phase 4 — Content Library (Super Admin only)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/content/ContentLibraryPage.tsx`: Admin-only Content Library hub with three tabs (**Media Assets**, **Message Templates**, **Audience Segments**) and real-time item counts.
+  - `src/features/content/MediaLibraryTab.tsx`: Grid of media cards with thumbnails, title, kind pills (Offer, New Arrival, Festival, Greeting), upload date, user badge, and Upload Modal supporting file selection and preview.
+  - `src/features/content/TemplatesTab.tsx`: Meta WhatsApp message templates table with approval status pills (Approved, Pending, Rejected), drawer editor with variable tags (`{{customer_name}}`, `{{branch_name}}`, `{{offer_text}}`), and live WhatsApp phone preview bubble matching `docs/design/05-campaigns-wizard.png`.
+  - `src/features/content/SegmentsTab.tsx`: Customer audience segments list with customer count, per-branch matching cards, and Segment Builder drawer with live audience counter evaluated against current customer database.
+  - `src/types/models.ts`: Added `MediaAsset`, `MessageTemplate`, `Segment`, `SegmentRules`, `TemplateCategory`, and `MetaTemplateStatus`.
+  - `src/mocks/data/content.ts`: Seeded 6 media assets, 8 message templates (Winter Collection Launch, Festive Offer Flat 20%, New Arrivals Formal Shirts, Birthday Wish, Anniversary Wish, Diwali Greetings, Loyal Customer Reward, Store Opening Hours), and 5 dynamic segments.
+  - `src/services/content.ts`: Implemented media, template, and segment CRUD with live preview calculation `previewSegmentCount`.
+  - `src/layouts/Sidebar.tsx` & `src/app/router.tsx`: Added `/content` to sidebar under Customer Engagement (admin only) and protected by `ProtectedRoute adminOnly`.
+  - `docs/API_CONTRACT.md`: Documented Section 6 Content Library Endpoints (`GET/POST/DELETE /media`, `GET/POST/PATCH/DELETE /templates`, `GET/POST/PATCH/DELETE /segments`, `POST /segments/preview-count`).
+- **Self-Check Results**:
+  - Uploading a new poster displays in the media grid.
+  - Segment "Birthday in December" count matches the calculated count of customer mock records born in month 12.
+  - Branch users are strictly blocked from `/content` via route guard and hidden sidebar item.
   - TypeScript & Vite build clean (`npm run build` zero errors).
 
 ## Phase 2 — Users & Branches (Super Admin only)
@@ -55,6 +91,24 @@
   - Self-deactivation and deactivating the last active super admin are strictly prevented with validation errors.
   - TypeScript & Vite build clean (`npm run build` zero errors).
 
+## Phase 4 — Content Library (Super Admin only)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/content/ContentLibraryPage.tsx`: Admin-only Content Library hub with three tabs (**Media Assets**, **Message Templates**, **Audience Segments**) and real-time item counts.
+  - `src/features/content/MediaLibraryTab.tsx`: Grid of media cards with thumbnails, title, kind pills (Offer, New Arrival, Festival, Greeting), upload date, user badge, and Upload Modal supporting file selection and preview.
+  - `src/features/content/TemplatesTab.tsx`: Meta WhatsApp message templates table with approval status pills (Approved, Pending, Rejected), drawer editor with variable tags (`{{customer_name}}`, `{{branch_name}}`, `{{offer_text}}`), and live WhatsApp phone preview bubble matching `docs/design/05-campaigns-wizard.png`.
+  - `src/features/content/SegmentsTab.tsx`: Customer audience segments list with customer count, per-branch matching cards, and Segment Builder drawer with live audience counter evaluated against current customer database.
+  - `src/types/models.ts`: Added `MediaAsset`, `MessageTemplate`, `Segment`, `SegmentRules`, `TemplateCategory`, and `MetaTemplateStatus`.
+  - `src/mocks/data/content.ts`: Seeded 6 media assets, 8 message templates (Winter Collection Launch, Festive Offer Flat 20%, New Arrivals Formal Shirts, Birthday Wish, Anniversary Wish, Diwali Greetings, Loyal Customer Reward, Store Opening Hours), and 5 dynamic segments.
+  - `src/services/content.ts`: Implemented media, template, and segment CRUD with live preview calculation `previewSegmentCount`.
+  - `src/layouts/Sidebar.tsx` & `src/app/router.tsx`: Added `/content` to sidebar under Customer Engagement (admin only) and protected by `ProtectedRoute adminOnly`.
+  - `docs/API_CONTRACT.md`: Documented Section 6 Content Library Endpoints (`GET/POST/DELETE /media`, `GET/POST/PATCH/DELETE /templates`, `GET/POST/PATCH/DELETE /segments`, `POST /segments/preview-count`).
+- **Self-Check Results**:
+  - Uploading a new poster displays in the media grid.
+  - Segment "Birthday in December" count matches the calculated count of customer mock records born in month 12.
+  - Branch users are strictly blocked from `/content` via route guard and hidden sidebar item.
+  - TypeScript & Vite build clean (`npm run build` zero errors).
+
 ## Phase 3 — Customer Database + Petpooja Import (connector #1)
 - **Status**: Completed & Verified
 - **Files Added / Changed**:
@@ -76,4 +130,22 @@
   - Branch 1 user sees only Branch 1 customers.
   - Tab counts (All, New, Active, Inactive) match filtered customer totals.
   - CSV export downloads clean UTF-8 BOM file readable by Excel.
+  - TypeScript & Vite build clean (`npm run build` zero errors).
+
+## Phase 4 — Content Library (Super Admin only)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/content/ContentLibraryPage.tsx`: Admin-only Content Library hub with three tabs (**Media Assets**, **Message Templates**, **Audience Segments**) and real-time item counts.
+  - `src/features/content/MediaLibraryTab.tsx`: Grid of media cards with thumbnails, title, kind pills (Offer, New Arrival, Festival, Greeting), upload date, user badge, and Upload Modal supporting file selection and preview.
+  - `src/features/content/TemplatesTab.tsx`: Meta WhatsApp message templates table with approval status pills (Approved, Pending, Rejected), drawer editor with variable tags (`{{customer_name}}`, `{{branch_name}}`, `{{offer_text}}`), and live WhatsApp phone preview bubble matching `docs/design/05-campaigns-wizard.png`.
+  - `src/features/content/SegmentsTab.tsx`: Customer audience segments list with customer count, per-branch matching cards, and Segment Builder drawer with live audience counter evaluated against current customer database.
+  - `src/types/models.ts`: Added `MediaAsset`, `MessageTemplate`, `Segment`, `SegmentRules`, `TemplateCategory`, and `MetaTemplateStatus`.
+  - `src/mocks/data/content.ts`: Seeded 6 media assets, 8 message templates (Winter Collection Launch, Festive Offer Flat 20%, New Arrivals Formal Shirts, Birthday Wish, Anniversary Wish, Diwali Greetings, Loyal Customer Reward, Store Opening Hours), and 5 dynamic segments.
+  - `src/services/content.ts`: Implemented media, template, and segment CRUD with live preview calculation `previewSegmentCount`.
+  - `src/layouts/Sidebar.tsx` & `src/app/router.tsx`: Added `/content` to sidebar under Customer Engagement (admin only) and protected by `ProtectedRoute adminOnly`.
+  - `docs/API_CONTRACT.md`: Documented Section 6 Content Library Endpoints (`GET/POST/DELETE /media`, `GET/POST/PATCH/DELETE /templates`, `GET/POST/PATCH/DELETE /segments`, `POST /segments/preview-count`).
+- **Self-Check Results**:
+  - Uploading a new poster displays in the media grid.
+  - Segment "Birthday in December" count matches the calculated count of customer mock records born in month 12.
+  - Branch users are strictly blocked from `/content` via route guard and hidden sidebar item.
   - TypeScript & Vite build clean (`npm run build` zero errors).

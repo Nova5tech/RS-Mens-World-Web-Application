@@ -12,6 +12,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ChatbotPage } from '@/features/chatbot/ChatbotPage';
 import { LeadsPage } from '@/features/leads/LeadsPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
+import { ContentLibraryPage } from '@/features/content/ContentLibraryPage';
 import { CampaignsPage } from '@/features/campaigns/CampaignsPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { UsersBranchesPage } from '@/features/users/UsersBranchesPage';
@@ -70,6 +71,14 @@ export const AppRouter: React.FC = () => {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/campaigns" element={<CampaignsPage />} />
+        <Route
+          path="/content"
+          element={
+            <ProtectedRoute adminOnly>
+              <ContentLibraryPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Insights & Control */}
         <Route path="/reports" element={<ReportsPage />} />

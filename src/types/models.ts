@@ -76,6 +76,60 @@ export interface ImportBatch {
   }>;
 }
 
+export type MediaKind = 'Offer' | 'New Arrival' | 'Festival' | 'Greeting';
+
+export interface MediaAsset {
+  id: string;
+  title: string;
+  kind: MediaKind;
+  storage_path: string;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export type TemplateCategory =
+  | 'Promotional'
+  | 'Greeting'
+  | 'Festival'
+  | 'Birthday'
+  | 'Anniversary'
+  | 'Announcement'
+  | 'Loyalty';
+
+export type MetaTemplateStatus = 'Approved' | 'Pending' | 'Rejected';
+
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  category: TemplateCategory;
+  body: string;
+  variables: string[];
+  header_image_url?: string;
+  cta_text?: string;
+  cta_url?: string;
+  meta_template_name: string;
+  meta_status: MetaTemplateStatus;
+  created_at: string;
+}
+
+export interface SegmentRules {
+  branch_id?: string | null;
+  birthday_month?: number | null;
+  anniversary_month?: number | null;
+  customer_type?: CustomerType | 'all';
+  customer_status?: CustomerStatus | 'all';
+  opted_in_only: boolean;
+}
+
+export interface Segment {
+  id: string;
+  name: string;
+  rules_json: SegmentRules;
+  customer_count?: number;
+  branch_counts?: Record<string, number>;
+  created_at: string;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
