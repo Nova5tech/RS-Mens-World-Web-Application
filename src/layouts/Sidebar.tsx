@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -21,12 +21,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranchContext } from '@/contexts/BranchContext';
+import { useAuth } from '@/features/auth/useAuth';
 
 interface NavItem {
   name: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   isComingSoon?: boolean;
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -69,13 +71,13 @@ const navGroups: NavGroup[] = [
     groupName: 'INSIGHTS & CONTROL',
     items: [
       { name: 'Reports', path: '/reports', icon: BarChart3 },
-      { name: 'Users & Branches', path: '/users-branches', icon: Building2 },
-      { name: 'Settings', path: '/settings', icon: Settings },
+      { name: 'Users & Branches', path: '/users-branches', icon: Building2, adminOnly: true },
+      { name: 'Settings', path: '/settings', icon: Settings, adminOnly: true },
     ],
   },
 ];
 
-// Custom Hanger icon matching target design
+// Custom Hanger icon matching target brand design
 export const HangerIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     viewBox="0 0 28 28"
@@ -99,7 +101,31 @@ export interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile }) => {
-  const { selectedBranch } = useBranchContext();
+  const { sidebarChipText, isLocked } = useBranchContext();
+  const { user, role, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const userInitial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U';
+  const userSubtitle =
+    role === 'super_admin' ? 'Head Office' : (user?.branch_name || sidebarChipText);
+
+  // Filter groups according to user role (hide admin-only items for branch users)
+  const filteredNavGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (item.adminOnly && role !== 'super_admin') {
+          return false;
+        }
+        return true;
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar-bg text-slate-200 select-none">
@@ -123,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
           <button
             type="button"
             onClick={onCloseMobile}
-            className="lg:hidden p-1 text-slate-400 hover:text-white rounded-md"
+            className="lg:hidden p-1 text-slate-400 hover:text-white rounded-md cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -133,17 +159,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
         <div className="mt-4 px-3 py-2 rounded-xl bg-[#072B21] border border-emerald-900/60 flex items-center justify-between text-xs text-white shadow-sm">
           <div className="flex items-center gap-2 truncate">
             <Store className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <span className="font-medium truncate">
-              {selectedBranch ? selectedBranch.name : 'Head Office'}
-            </span>
+            <span className="font-medium truncate">{sidebarChipText}</span>
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+          {!isLocked && <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
         </div>
       </div>
 
       {/* Navigation Groups List */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-5 scrollbar-thin">
-        {navGroups.map((group) => (
+        {filteredNavGroups.map((group) => (
           <div key={group.groupName} className="space-y-1">
             <div className="px-3 text-[10px] font-bold tracking-wider text-emerald-500/70 uppercase">
               {group.groupName}
@@ -205,26 +229,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
         <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
           <div className="flex items-center gap-2.5 truncate">
             <div className="w-8 h-8 rounded-full bg-accent-brand/20 border border-accent-brand/40 flex items-center justify-center text-accent-brand font-bold text-xs flex-shrink-0">
-              S
+              {userInitial}
             </div>
             <div className="truncate">
               <div className="text-xs font-semibold text-white leading-tight truncate">
-                Super Admin
+                {user?.full_name || 'Logged In User'}
               </div>
               <div className="text-[11px] text-slate-400 leading-tight truncate">
-                Head Office
+                {userSubtitle}
               </div>
             </div>
           </div>
           <button
             type="button"
-            title="Logout"
-            onClick={() => {
-              if (window.confirm('Are you sure you want to log out?')) {
-                localStorage.removeItem('auth_token');
-                window.location.reload();
-              }
-            }}
+            title="Log out"
+            onClick={handleLogout}
             className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />

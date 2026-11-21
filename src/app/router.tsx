@@ -1,6 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from '@/layouts/AppShell';
+import { ProtectedRoute } from '@/app/ProtectedRoute';
+import { LoginPage } from '@/features/auth/LoginPage';
 
 // Coming soon pages
 import { ComingSoonPage } from '@/pages/ComingSoonPage';
@@ -18,7 +20,17 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
-      <Route element={<AppShell />}>
+      {/* Public Login Route */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected Routes inside AppShell */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        }
+      >
         {/* Operations */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -61,8 +73,33 @@ export const AppRouter: React.FC = () => {
 
         {/* Insights & Control */}
         <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/users-branches" element={<UsersBranchesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+
+        {/* Admin-only Routes */}
+        <Route
+          path="/users-branches"
+          element={
+            <ProtectedRoute adminOnly>
+              <UsersBranchesPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Support /users alias directly as admin-only route */}
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute adminOnly>
+              <Navigate to="/users-branches" replace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute adminOnly>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
