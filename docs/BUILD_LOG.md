@@ -149,3 +149,23 @@
   - Segment "Birthday in December" count matches the calculated count of customer mock records born in month 12.
   - Branch users are strictly blocked from `/content` via route guard and hidden sidebar item.
   - TypeScript & Vite build clean (`npm run build` zero errors).
+
+
+## Phase 5 — WhatsApp Campaigns (connector #2)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/campaigns/CampaignsPage.tsx`: Pixel-close match to `docs/design/05-campaigns.png`. Top stat cards (Total Campaigns, Active, Sent, Scheduled, Delivery Rate %), tab filter chips (All, Active, Sent, Scheduled, Drafts), search, branch selector (locked for branch users), status filter, campaigns table with target branches icons, recipients count, delivered %, read %, date, and action menu (View Report, Retry Failed, Edit, Duplicate, Cancel, Delete).
+  - `src/features/campaigns/CampaignWizard.tsx`: 4-step campaign wizard drawer matching `docs/design/05-campaigns-wizard.png` (Basics, Content, Audience & Branches, Schedule & Review) with interactive WhatsApp bubble preview, branch ON/OFF toggles with active audience preview, exclusion rules (opted-out, missing phone, quiet hours warning), and send confirmation dialog.
+  - `src/features/campaigns/CampaignReportModal.tsx`: Comprehensive campaign report modal with delivery funnel (Targeted -> Sent -> Delivered -> Read), per-branch delivery breakdown cards, recipient messages table with live status badges (Delivered, Read, Failed, Queued), failure reasons, "Retry Failed" action, and CSV export.
+  - `src/types/models.ts`: Added `Campaign`, `CampaignStatus`, `CampaignMessage`, `CampaignStats`, `CampaignSettings`.
+  - `src/mocks/data/campaigns.ts`: Seeded 12 realistic campaigns with diverse statuses, templates, media, and recipient records.
+  - `src/services/campaigns.ts`: Implemented campaign lifecycle management (create, update, delete, duplicate, cancel, schedule, send now, retry failed, recipient stats) and audience preview calculation with strict consent filtering and branch scoping.
+  - `src/app/router.tsx` & `src/layouts/Sidebar.tsx`: Verified `/campaigns` route and navigation.
+  - `docs/API_CONTRACT.md`: Documented Section 7 WhatsApp Campaigns Endpoints (`GET/POST /campaigns`, `GET/PATCH/DELETE /campaigns/{id}`, `POST /campaigns/{id}/send`, `POST /campaigns/{id}/schedule`, `POST /campaigns/{id}/retry-failed`, `GET /campaigns/{id}/report`, `POST /campaigns/preview-audience`, Meta Cloud Webhook specification).
+- **Self-Check Results**:
+  - Switched-OFF branch receives zero messages (audience preview confirms 0 for that branch).
+  - Customers without consent (`consent_whatsapp: false`) are completely excluded from audience calculation.
+  - Branch 2 user sees only Branch 2 campaigns and reports.
+  - Delivery rates and recipient counts in report modal match campaign records.
+  - Retry failed simulates re-sending failed messages and updates delivery metrics.
+  - TypeScript & Vite build clean (`npm run build` zero errors).

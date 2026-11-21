@@ -130,6 +130,64 @@ export interface Segment {
   created_at: string;
 }
 
+export type CampaignType = 'Promotional' | 'Announcement' | 'Loyalty' | 'Greeting';
+export type CampaignStatus = 'Draft' | 'Scheduled' | 'Sending' | 'Sent' | 'Failed';
+
+export interface CampaignStats {
+  total: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+}
+
+export interface Campaign {
+  id: string;
+  code: string;
+  name: string;
+  type: CampaignType;
+  template_id: string;
+  template_name?: string;
+  media_id?: string;
+  media_url?: string;
+  segment_id?: string;
+  segment_name?: string;
+  branches: string[];
+  branch_codes: string[];
+  audience_count: number;
+  status: CampaignStatus;
+  scheduled_at?: string | null;
+  sent_at?: string | null;
+  created_at: string;
+  created_by: string;
+  variables?: Record<string, string>;
+  stats?: CampaignStats;
+}
+
+export type MessageDeliveryStatus = 'queued' | 'sent' | 'delivered' | 'read' | 'failed';
+
+export interface CampaignMessage {
+  id: string;
+  campaign_id: string;
+  customer_id: string;
+  customer_name: string;
+  phone: string;
+  branch_id: string;
+  branch_code: string;
+  status: MessageDeliveryStatus;
+  error?: string;
+  sent_at?: string;
+  delivered_at?: string;
+  read_at?: string;
+}
+
+export interface CampaignSettings {
+  allow_branch_campaigns: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;

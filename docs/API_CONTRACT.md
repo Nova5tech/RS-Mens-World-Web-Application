@@ -679,3 +679,148 @@ Delete audience segment.
 
 - **Access**: `super_admin` only
 - **Response `204 No Content`**
+
+---
+
+## 7. WhatsApp Marketing Campaigns Endpoints (Phase 5)
+
+### 7.1 Campaigns
+
+#### `GET /campaigns`
+Retrieve WhatsApp campaigns with branch scoping and status filtering.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` only sees campaigns that were released to their branch (read-only reports).
+- **Query Parameters**:
+  - `branchId` (string, optional)
+  - `status` (string, optional): `all` | `draft` | `scheduled` | `sent` | `failed`
+  - `search` (string, optional)
+- **Response `200 OK`**: Array of `Campaign` objects.
+
+#### `GET /campaigns/{id}`
+Retrieve a single campaign by ID with statistics and branch delivery breakdown.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**: Returns `Campaign` object.
+
+#### `GET /campaigns/stats`
+Retrieve aggregated campaign KPI statistics (Total, Messages Sent, Delivered %, Read %, Failed).
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Query Parameters**:
+  - `branchId` (optional)
+- **Response `200 OK`**:
+```json
+{
+  "total": 12,
+  "sent": 23510,
+  "delivered": 97.4,
+  "read": 84.2,
+  "failed": 210
+}
+```
+
+#### `POST /campaigns/audience-preview`
+Evaluate live audience size for selected branches and segment rules.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "branchSelection": {
+    "branch_1": true,
+    "branch_2": true,
+    "branch_3": false,
+    "branch_4": false
+  },
+  "segmentId": "seg_1"
+}
+```
+- **Response `200 OK`**:
+```json
+{
+  "branchCounts": {
+    "branch_1": 4200,
+    "branch_2": 2800,
+    "branch_3": 0,
+    "branch_4": 0
+  },
+  "totalAudience": 7000,
+  "excludedNoConsent": 450,
+  "excludedOptedOut": 62,
+  "excludedInvalid": 18
+}
+```
+
+#### `POST /campaigns`
+Create a new campaign draft.
+
+- **Access**: `super_admin` (and `branch_user` if enabled by admin settings for their own branch only)
+- **Request Body**: Partial `Campaign` definition.
+- **Response `201 Created`**: Returns created `Campaign`.
+
+#### `POST /campaigns/{id}/send`
+Execute immediate broadcast of an approved campaign to all switched ON branches. Only recipients with valid marketing consent and no opt-out are queued.
+
+- **Access**: `super_admin`
+- **Response `200 OK`**: Returns updated `Campaign` with status `Sending`.
+
+#### `POST /campaigns/{id}/schedule`
+Schedule an approved campaign for automatic release at a future datetime.
+
+- **Access**: `super_admin`
+- **Request Body**:
+```json
+{
+  "scheduledAt": "2025-12-01T10:00:00Z"
+}
+```
+- **Response `200 OK`**: Returns updated `Campaign` with status `Scheduled`.
+
+#### `POST /campaigns/{id}/cancel`
+Cancel a scheduled campaign release, returning it to `Draft`.
+
+- **Access**: `super_admin`
+- **Response `200 OK`**: Returns updated `Campaign`.
+
+#### `POST /campaigns/{id}/retry-failed`
+Retry message delivery for recipients that failed with transient provider errors.
+
+- **Access**: `super_admin`
+- **Response `200 OK`**:
+```json
+{
+  "retriedCount": 24,
+  "status": "processing"
+}
+```
+
+#### `GET /campaigns/{id}/messages`
+Retrieve detailed recipient delivery logs for a specific campaign.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Query Parameters**:
+  - `status` (optional): `all` | `delivered` | `read` | `failed` | `queued`
+- **Response `200 OK`**: Array of `CampaignMessage` objects.
+
+### 7.2 Campaign Settings
+
+#### `GET /settings/campaigns`
+Retrieve global WhatsApp campaign policies (allow branch campaigns, quiet hours).
+
+- **Access**: `super_admin`
+- **Response `200 OK`**: `CampaignSettings` object.
+
+#### `PATCH /settings/campaigns`
+Update campaign policies.
+
+- **Access**: `super_admin`
+- **Response `200 OK`**: Updated `CampaignSettings` object.
+
+### 7.3 Backend-Only Webhooks (Documentation for Backend Team)
+
+#### `POST /webhooks/whatsapp`
+Receives asynchronous inbound status receipts (`sent`, `delivered`, `read`, `failed`) and customer replies from Meta WhatsApp Cloud API.
+- Customer replies with `STOP` or `UNSUBSCRIBE` must automatically set `opted_out_at` on the matching customer record and immediately exclude them from future broadcast audiences.
+- Inbound messages are routed to `/chatbot` customer conversation threads.
+- Outbound WhatsApp messages must be throttled according to Meta account messaging tiers (1K, 10K, 100K per 24 hours).
