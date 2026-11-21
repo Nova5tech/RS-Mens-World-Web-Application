@@ -1,7 +1,6 @@
 import React from 'react';
 import { Clock, ArrowRight } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Pill } from '@/components/ui/Pill';
+import { Link } from 'react-router-dom';
 
 export interface ComingSoonPageProps {
   title: string;
@@ -11,44 +10,45 @@ export interface ComingSoonPageProps {
 
 export const ComingSoonPage: React.FC<ComingSoonPageProps> = ({
   title,
-  moduleName = 'Operations / ERP',
+  moduleName = 'Operations / Retail',
   description = 'This module is scheduled for development in an upcoming release. Core Customer Engagement features (Chatbot, Leads, Campaigns, Customers) are prioritized first.',
 }) => {
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <Card className="border-dashed border-2 border-slate-200 shadow-sm text-center">
-        <CardContent className="py-16 px-6 flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 shadow-sm border border-amber-100">
-            <Clock className="w-8 h-8" />
-          </div>
+    <div className="max-w-2xl mx-auto py-12">
+      <div className="bg-white rounded-2xl border border-border-card p-8 sm:p-12 shadow-card text-center">
+        {/* Soft icon tile */}
+        <div className="w-16 h-16 rounded-2xl bg-accent-soft text-primary-brand flex items-center justify-center mb-5 mx-auto shadow-xs">
+          <Clock className="w-8 h-8" strokeWidth={1.75} />
+        </div>
 
-          <Pill variant="amber" size="md" className="mb-3">
-            {moduleName}
-          </Pill>
+        <div className="inline-block px-3 py-1 rounded-full bg-slate-100 text-app-muted text-xs font-semibold mb-3">
+          {moduleName}
+        </div>
 
-          <h2 className="text-xl font-bold text-app-text">{title} is Coming Soon</h2>
+        <h2 className="text-2xl font-bold text-app-text tracking-tight">
+          {title} is Coming Soon
+        </h2>
 
-          <p className="mt-2 text-xs sm:text-sm text-app-muted max-w-md leading-relaxed">
-            {description}
-          </p>
+        <p className="mt-2 text-xs sm:text-sm text-app-muted max-w-md mx-auto leading-relaxed">
+          {description}
+        </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="/customers"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-brand text-white rounded-lg text-xs font-semibold hover:bg-[#0c3e2f] transition-colors shadow-sm"
-            >
-              <span>Explore Customer Database</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
-            <a
-              href="/leads"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-app-text border border-border-card rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <span>View Lead Generation</span>
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            to="/customers"
+            className="inline-flex items-center gap-2 h-10 px-4 bg-primary-brand text-white rounded-xl text-xs font-semibold hover:bg-[#0B3B2E] transition-all shadow-sm active:scale-[0.98]"
+          >
+            <span>Customer Database</span>
+            <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
+          </Link>
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 h-10 px-4 bg-white text-app-text border border-border-card rounded-xl text-xs font-semibold hover:bg-slate-50 transition-all shadow-card active:scale-[0.98]"
+          >
+            <span>Back to Dashboard</span>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };

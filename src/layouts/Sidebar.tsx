@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
+  LucideIcon,
   LayoutDashboard,
   ShoppingCart,
   Receipt,
@@ -26,7 +27,7 @@ import { useAuth } from '@/features/auth/useAuth';
 interface NavItem {
   name: string;
   path: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon | React.ComponentType<{ className?: string }>;
   isComingSoon?: boolean;
   adminOnly?: boolean;
 }
@@ -77,7 +78,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-// Custom Hanger icon matching target brand design
+// Custom Hanger icon matching target design from screenshots
 export const HangerIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     viewBox="0 0 28 28"
@@ -129,18 +130,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar-bg text-slate-200 select-none">
-      {/* Top Header: Brand & Logo */}
-      <div className="px-5 pt-6 pb-4">
+      {/* Top Header: Brand & Logo Row */}
+      <div className="px-5 pt-6 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#082C22] flex items-center justify-center shadow-inner border border-emerald-800/40">
+            <div className="w-9 h-9 rounded-xl bg-accent-brand/10 border border-accent-brand/20 flex items-center justify-center flex-shrink-0">
               <HangerIcon className="w-5 h-5 text-accent-brand" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white tracking-tight leading-tight">
+              <h1 className="text-base font-bold text-white tracking-tight leading-tight">
                 RS Mens World
               </h1>
-              <p className="text-[11px] font-medium text-emerald-400/80 leading-tight">
+              <p className="text-[11px] font-medium text-accent-brand leading-tight mt-0.5">
                 Customer Engagement Platform
               </p>
             </div>
@@ -149,30 +150,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
           <button
             type="button"
             onClick={onCloseMobile}
-            className="lg:hidden p-1 text-slate-400 hover:text-white rounded-md cursor-pointer"
+            className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+            aria-label="Close navigation"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" strokeWidth={1.75} />
           </button>
         </div>
 
         {/* Branch Chip below logo */}
-        <div className="mt-4 px-3 py-2 rounded-xl bg-[#072B21] border border-emerald-900/60 flex items-center justify-between text-xs text-white shadow-sm">
-          <div className="flex items-center gap-2 truncate">
-            <Store className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <span className="font-medium truncate">{sidebarChipText}</span>
+        <div className="mt-4 px-3.5 py-2.5 rounded-xl bg-[#072B21] border border-white/10 flex items-center justify-between text-xs text-white shadow-xs">
+          <div className="flex items-center gap-2.5 truncate">
+            <Store className="w-[18px] h-[18px] text-accent-brand flex-shrink-0" strokeWidth={1.75} />
+            <span className="font-medium text-white truncate text-xs">{sidebarChipText}</span>
           </div>
-          {!isLocked && <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+          {!isLocked && (
+            <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" strokeWidth={1.75} />
+          )}
         </div>
       </div>
 
-      {/* Navigation Groups List */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-5 scrollbar-thin">
+      {/* Navigation Groups List with subtle scroll and fade */}
+      <div className="flex-1 overflow-y-auto px-3.5 py-2 space-y-4 sidebar-scroll">
         {filteredNavGroups.map((group) => (
           <div key={group.groupName} className="space-y-1">
-            <div className="px-3 text-[10px] font-bold tracking-wider text-emerald-500/70 uppercase">
+            <div className="px-3 pt-3 pb-1 text-[11px] font-medium tracking-wider text-emerald-400/60 uppercase">
               {group.groupName}
             </div>
-            <div className="space-y-0.5 pt-0.5">
+            <div className="space-y-1">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -182,33 +186,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
                     onClick={onCloseMobile}
                     className={({ isActive }) =>
                       cn(
-                        'group flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150',
+                        'group flex items-center justify-between h-10 px-3.5 rounded-xl text-sm transition-all duration-150',
                         isActive
-                          ? 'bg-accent-brand text-[#0B3B2E] font-semibold shadow-sm'
-                          : 'text-slate-300 hover:text-white hover:bg-white/5'
+                          ? 'bg-accent-brand text-[#0B3B2E] font-semibold shadow-xs'
+                          : 'text-slate-300 hover:text-white hover:bg-white/[0.06] font-medium'
                       )
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        <div className="flex items-center gap-2.5 truncate">
+                        <div className="flex items-center gap-3 truncate">
                           <Icon
                             className={cn(
-                              'w-4 h-4 transition-colors flex-shrink-0',
+                              'w-[18px] h-[18px] transition-colors flex-shrink-0',
                               isActive
                                 ? 'text-[#0B3B2E]'
                                 : 'text-slate-400 group-hover:text-white'
                             )}
+                            strokeWidth={1.75}
                           />
                           <span className="truncate">{item.name}</span>
                         </div>
                         {item.isComingSoon && (
                           <span
                             className={cn(
-                              'text-[10px] px-1.5 py-0.2 rounded-md font-normal',
+                              'text-[10px] px-2 py-0.5 rounded-full font-medium',
                               isActive
-                                ? 'bg-[#0B3B2E]/10 text-[#0B3B2E]'
-                                : 'bg-emerald-950/80 text-emerald-400/80'
+                                ? 'bg-[#0B3B2E]/20 text-[#0B3B2E]'
+                                : 'bg-white/10 text-slate-300'
                             )}
                           >
                             Soon
@@ -224,18 +229,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
         ))}
       </div>
 
-      {/* Bottom User Card */}
-      <div className="p-3 border-t border-emerald-950/80 bg-[#082A20]/80">
-        <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+      {/* Bottom User Card pinned with divider line */}
+      <div className="p-3.5 border-t border-white/10 bg-[#082A20]/80">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/5">
           <div className="flex items-center gap-2.5 truncate">
-            <div className="w-8 h-8 rounded-full bg-accent-brand/20 border border-accent-brand/40 flex items-center justify-center text-accent-brand font-bold text-xs flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-primary-brand border border-accent-brand/40 flex items-center justify-center text-accent-brand font-bold text-xs flex-shrink-0 shadow-xs">
               {userInitial}
             </div>
             <div className="truncate">
               <div className="text-xs font-semibold text-white leading-tight truncate">
                 {user?.full_name || 'Logged In User'}
               </div>
-              <div className="text-[11px] text-slate-400 leading-tight truncate">
+              <div className="text-[11px] text-slate-400 leading-tight truncate mt-0.5">
                 {userSubtitle}
               </div>
             </div>
@@ -244,9 +249,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
             type="button"
             title="Log out"
             onClick={handleLogout}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            aria-label="Log out"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-[18px] h-[18px]" strokeWidth={1.75} />
           </button>
         </div>
       </div>
@@ -267,7 +273,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
             onClick={onCloseMobile}
           />
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-sidebar-bg z-10 animate-in slide-in-from-left duration-200">
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-sidebar-bg z-10 shadow-drawer animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>

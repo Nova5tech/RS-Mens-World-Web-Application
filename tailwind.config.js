@@ -36,7 +36,23 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       borderRadius: {
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+        '2xl': '24px',
         card: '14px',
+        'card-lg': '24px',
+      },
+      boxShadow: {
+        card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04)',
+        dropdown: '0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 10px 24px -3px rgba(0, 0, 0, 0.08)',
+        drawer: '0 8px 30px rgba(0, 0, 0, 0.12)',
+        'hover-lift': '0 8px 25px -4px rgba(15, 23, 42, 0.08)',
+      },
+      fontSize: {
+        'page-title': ['24px', { lineHeight: '32px', fontWeight: '700' }],
+        'section-title': ['16px', { lineHeight: '24px', fontWeight: '600' }],
       },
     },
   },

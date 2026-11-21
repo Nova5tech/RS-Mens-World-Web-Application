@@ -13,12 +13,26 @@ body {
   background-color: #F4F7F6;
   color: #0F172A;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global button, link and interactive transitions */
+button, a, input, select, textarea {
+  transition: all 150ms ease-in-out;
+}
+
+/* Focus ring visible on keyboard navigation only */
+:focus-visible {
+  outline: none;
+  ring: 2px solid #46D68C;
+  outline-offset: 2px;
 }
 
 /* Custom subtle scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -32,4 +46,22 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Thin custom scrollbar for dark sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(70, 214, 140, 0.2);
+  border-radius: 9999px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(70, 214, 140, 0.4);
 }
