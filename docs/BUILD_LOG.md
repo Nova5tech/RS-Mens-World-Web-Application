@@ -219,3 +219,19 @@
   - Create Lead creates a validated lead in `leadsService` with matching branch and context bullets.
   - Branch users see only their branch conversations.
   - TypeScript & Vite build clean (`npm run build` zero errors).
+
+## Phase 8 — Dashboard & Reports
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/dashboard/DashboardPage.tsx`: Full operations & engagement dashboard with 10 KPI cards with change metrics (Total Customers, New Customers, Opted-in %, Campaigns Sent, Delivered %, Read %, New Leads, Lead Conversion %, Open Chats, Pending Handovers), 5 Recharts visualizations respecting brand colors (WhatsApp Delivery/Read Funnel LineChart, Leads by Stage BarChart, Leads by Acquisition Source Donut PieChart, Customers by Branch BarChart for super admins, AI Assistant Volume AreaChart), branch comparison table for super admins, and interactive action lists (Follow-ups Due Today, Recent Campaigns, Recent Conversations).
+  - `src/features/reports/ReportsPage.tsx`: Multi-tab exportable report center covering the 4 contracted SOW domains (**Campaign**, **Customer**, **Lead**, **Chat**) with branch and date range filtering, real-time table views with status pills, and one-click UTF-8 BOM CSV export (`\uFEFF`) ensuring full compatibility with Microsoft Excel.
+  - `src/services/dashboard.ts`: Dashboard aggregation service computing metrics and series dynamically from customers, leads, campaigns, and chatbot state with automatic branch-isolation scoping for `branch_user`.
+  - `src/services/reports.ts`: Tabular report generation service with CSV download helper injecting UTF-8 byte-order mark and strict branch isolation.
+  - `docs/API_CONTRACT.md`: Documented Section 10 Dashboard & Reports Endpoints (`GET /dashboard/summary`, `GET /dashboard/charts`, `GET /reports/{type}` with optional CSV formatting).
+- **Self-Check Results**:
+  - Dashboard KPI metrics reflect underlying mock customer, lead, campaign, and chat records.
+  - Branch users are strictly locked to their branch data; branch selector is disabled and backend service automatically scopes data to user's branch.
+  - Super Admin can switch between "All Branches" and individual branches, and view cross-branch performance comparison table.
+  - Reports for all 4 domains (Campaigns, Customers, Leads, Chats) filter accurately by branch and date range.
+  - CSV export downloads clean file with UTF-8 BOM, displaying currency (`₹`) and dates correctly in Excel.
+  - TypeScript & Vite build clean (`npm run build` zero errors).

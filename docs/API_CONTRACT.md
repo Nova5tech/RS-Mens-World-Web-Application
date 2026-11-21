@@ -1149,3 +1149,71 @@ Send customer message from website widget. The backend AI engine answers from ap
 #### Real-Time Sync Specification
 - **WebSocket / SSE Channel**: `/ws/conversations`
 - Emits event `conversation_updated` whenever customer, AI, or staff posts a new message, allowing 0-delay real-time synchronization between the public widget and staff inbox.
+
+
+---
+
+## 10. Dashboard & Reports Endpoints (Phase 8)
+
+### 10.1 Dashboard
+
+#### `GET /dashboard/summary`
+Retrieve real-time business and engagement KPIs (Total Customers, New Customers, Opted-in %, Campaigns Sent, Delivered %, Read %, New Leads, Lead Conversion %, Open Chats, Pending Handovers).
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` summary counts are strictly computed over their assigned branch's data.
+- **Query Parameters**:
+  - `branch_id` (string, optional)
+  - `date_range` (string, optional): `today` | `yesterday` | `7days` | `this_month` | `custom`
+- **Response `200 OK`**:
+```json
+{
+  "total_customers": 200,
+  "new_customers": 50,
+  "opted_in_pct": 86,
+  "campaigns_sent": 8,
+  "messages_delivered_pct": 96,
+  "messages_read_pct": 78,
+  "new_leads": 60,
+  "lead_conversion_pct": 25,
+  "open_chats": 8,
+  "pending_handovers": 3
+}
+```
+
+#### `GET /dashboard/charts`
+Retrieve formatted series for dashboard Recharts visualizations.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Query Parameters**: `branch_id`, `date_range`
+- **Response `200 OK`**:
+```json
+{
+  "messagesTrend": [
+    { "date": "Nov 21", "sent": 1950, "delivered": 1890, "read": 1530 }
+  ],
+  "leadsByStage": [
+    { "stage": "New", "count": 13, "fill": "#0EA5E9" }
+  ],
+  "leadsBySource": [
+    { "name": "Website Chat", "value": 18, "fill": "#0F4C3A" }
+  ],
+  "customersByBranch": [
+    { "branch": "Rajahmundry", "customers": 65, "fill": "#0F4C3A" }
+  ],
+  "chatVolumeByDay": [
+    { "day": "Mon", "volume": 28 }
+  ]
+}
+```
+
+### 10.2 Reports & Exports
+
+#### `GET /reports/{type}`
+Where `{type}` is `campaigns` | `customers` | `leads` | `chats`.
+Retrieve tabular analytics with date range and branch scoping.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` receives data for their assigned branch only.
+- **Query Parameters**:
+  - `branch_id` (string, optional)
+  - `date_range` (string, optional)
+  - `format` (string, optional): `json` (default) or `csv`
+- **Response `200 OK`**: Array of report objects, or direct CSV download when `format=csv` (encoded in UTF-8 with BOM `\uFEFF`).
