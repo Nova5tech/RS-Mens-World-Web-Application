@@ -194,3 +194,28 @@
   - Filters (Branch, Priority, Source, Follow-up) and text search combine cleanly.
   - Auto-assignment rule verified: preferred branch selected -> fallback to customer's previous branch -> fallback to Branch 1.
   - TypeScript & Vite build clean (`npm run build` zero errors).
+
+## Phase 7 — AI Chatbot: Inbox, Knowledge Base, Website Widget (connector #3)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/chatbot/ChatbotPage.tsx`: Pixel-close 3-column AI Chatbot inbox matching `docs/design/07-chatbot-admin.png` and `07-chatbot-branch-images.png`. Header with Online/Offline status dropdown and Admin Knowledge Base shortcut.
+  - `src/features/chatbot/ConversationList.tsx`: Left column with filter tabs (**All**, **Open**, **Pending**, **Closed**), search bar, and conversation list items showing avatar, channel icons (Instagram, WhatsApp, Website), relative timestamps, unread green indicators, and selected mint state.
+  - `src/features/chatbot/ChatArea.tsx`: Middle column chat thread with header actions (close, reopen, mark pending, assign branch), human takeover banner with "Resume AI" button, customer bubbles, AI bubbles with badge and double tick, product image cards carousel matching `07-chatbot-branch-images.png`, system handover markers, and staff composer with media attachment icon.
+  - `src/features/chatbot/LeadContextPanel.tsx`: Right column with Customer profile details, branch indicator, interest pills, Lead status selector, follow-up date, and AI conversation context bullet points with "+ Create Lead" CRM integration.
+  - `src/features/chatbot/KnowledgeBaseModal.tsx`: Admin-only Knowledge Base manager featuring articles table (store locations, timings, return policy, offers, size guide, contact numbers, payment modes), keyword triggers, branch applicability, active toggles, article editor, and chat settings with non-editable AI safety rule callout ("AI cannot promise stock/price/delivery").
+  - `src/features/chatbot/WebsiteChatWidget.tsx`: Floating website chat widget matching the design with pre-chat visitor registration form (name, phone, preferred branch, WhatsApp consent), quick-reply chips, typing indicator simulation, and real-time custom event synchronization with admin inbox.
+  - `src/layouts/WebsiteChatButton.tsx`: Global integration of the interactive Website Chat widget into `AppShell`.
+  - `src/types/models.ts`: Added `ChatConversation`, `ChatMessage`, `KBArticle`, `ChatSettings`, `ChatChannel`, `ConversationStatus`.
+  - `src/mocks/data/chat.ts`: Seeded 15 realistic customer conversations across channels (Website, WhatsApp, Instagram) and branches, 7 Knowledge Base articles, and default chatbot settings.
+  - `src/services/chat.ts`: Implemented conversations CRUD, staff replies with auto-AI pause, branch assignment, lead creation, KB articles management, public widget session start, and rule-based AI reply matching with strict zero-hallucination inventory policy.
+  - `widget/embed.ts` & `widget/README.md`: Standalone embeddable widget script and integration documentation for external websites.
+  - `docs/API_CONTRACT.md`: Documented Section 9 AI Chatbot & Knowledge Base Endpoints (`GET/POST /conversations`, `GET/POST /conversations/{id}/messages`, `PATCH /conversations/{id}`, `POST /conversations/{id}/create-lead`, `GET/POST/PATCH/DELETE /kb-articles`, `POST /public/chat/start`, `POST /public/chat/{id}/message`, WebSocket/SSE real-time sync specification).
+- **Self-Check Results**:
+  - Asking "What are your timings?" returns approved KB text: 10:00 AM to 9:30 PM across all 7 days.
+  - Asking unknown questions returns: "I'm not sure about that. Would you like me to connect you with our store team?".
+  - Stock inquiries ("in stock", "price lock") strictly avoid promising inventory and offer store handover.
+  - "Talk to staff" moves conversation to Pending, inserts system line, and alerts staff.
+  - Staff message switches conversation to human mode (AI paused); clicking "Resume AI" re-enables bot.
+  - Create Lead creates a validated lead in `leadsService` with matching branch and context bullets.
+  - Branch users see only their branch conversations.
+  - TypeScript & Vite build clean (`npm run build` zero errors).

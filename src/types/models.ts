@@ -261,6 +261,63 @@ export interface NotificationItem {
   created_at: string;
 }
 
+// -------------------------------------------------------------
+// CHATBOT & KNOWLEDGE BASE
+// -------------------------------------------------------------
+export type ChatChannel = 'website' | 'whatsapp' | 'instagram';
+export type ConversationStatus = 'open' | 'pending' | 'closed';
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender: 'customer' | 'ai' | 'staff' | 'system';
+  sender_name?: string;
+  text: string;
+  image_urls?: string[];
+  created_at: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  customer_name: string;
+  customer_phone?: string;
+  customer_avatar?: string;
+  channel: ChatChannel;
+  branch_id: string;
+  status: ConversationStatus;
+  unread_count: number;
+  ai_paused: boolean;
+  last_message?: string;
+  last_message_at: string;
+  interest_tags: string[];
+  linked_lead_id?: string;
+  lead_status?: LeadStage;
+  follow_up_date?: string;
+  context_bullets: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KBArticle {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  keywords: string[];
+  branch_id: 'all' | string;
+  is_active: boolean;
+  updated_at: string;
+}
+
+export interface ChatSettings {
+  ai_enabled: boolean;
+  online_status: 'online' | 'offline';
+  welcome_message: string;
+  offline_message: string;
+  handover_message: string;
+  disclaimer_text: string;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;

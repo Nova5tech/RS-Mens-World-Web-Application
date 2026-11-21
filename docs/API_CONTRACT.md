@@ -990,3 +990,162 @@ Convert lead to `converted` stage and optionally provision a customer profile.
 Re-analyze lead inquiry and tags with AI model to generate updated category, suggested priority, and bullet points.
 - **Access**: Authenticated (`super_admin`, `branch_user`)
 - **Response `200 OK`**: Returns `LeadAISummary` object.
+
+
+---
+
+## 9. AI Chatbot & Knowledge Base Endpoints (Phase 7)
+
+### 9.1 Staff Inbox & Conversations
+
+#### `GET /conversations`
+Retrieve conversations list with status, branch, and search filtering.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` is strictly scoped to conversations mapped to their assigned `branch_id`. `super_admin` can filter by `branch_id` or view all branches.
+- **Query Parameters**:
+  - `status` (string, optional): `all` | `open` | `pending` | `closed`
+  - `branch_id` (string, optional)
+  - `search` (string, optional): Customer name, phone, message content
+- **Response `200 OK`**:
+```json
+[
+  {
+    "id": "conv_1",
+    "customer_name": "Vikram Singh",
+    "customer_phone": "+919988766554",
+    "channel": "instagram",
+    "branch_id": "branch_1",
+    "status": "open",
+    "unread_count": 0,
+    "ai_paused": false,
+    "last_message": "Do you have a store near me?",
+    "last_message_at": "2026-11-21T10:46:00Z",
+    "interest_tags": ["Store Locator"],
+    "linked_lead_id": null,
+    "context_bullets": [
+      "Customer asked for nearest store address in AP",
+      "Sent location map and branch opening hours"
+    ]
+  }
+]
+```
+
+#### `GET /conversations/{id}/messages`
+Retrieve message history for a conversation thread.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**:
+```json
+[
+  {
+    "id": "msg_101",
+    "conversation_id": "conv_1",
+    "sender": "customer",
+    "text": "Do you have a store near me?",
+    "created_at": "2026-11-21T10:45:00Z"
+  },
+  {
+    "id": "msg_102",
+    "conversation_id": "conv_1",
+    "sender": "ai",
+    "text": "Our flagship store is located at Main Road, Rajahmundry, with branches in Anna Nagar, Kakinada, and Vijayawada.",
+    "created_at": "2026-11-21T10:46:00Z"
+  }
+]
+```
+
+#### `POST /conversations/{id}/messages`
+Send staff reply message. Calling this endpoint automatically sets `ai_paused: true` (switches to human mode) so AI bot does not interfere with staff conversation.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "text": "Hello! I am Rajesh from Rajahmundry store. We have 3-piece suits available in size 42."
+}
+```
+- **Response `201 Created`**: Returns created `ChatMessage`.
+
+#### `PATCH /conversations/{id}`
+Update conversation status (`open`, `pending`, `closed`), assigned branch, or resume AI bot (`ai_paused: false`).
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "status": "closed",
+  "ai_paused": false
+}
+```
+- **Response `200 OK`**: Updated `ChatConversation`.
+
+#### `POST /conversations/{id}/create-lead`
+Create a CRM Lead from conversation context (name, phone, branch, interest tags, enquiry summary).
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**:
+```json
+{
+  "lead_id": "L-3862",
+  "conversation_id": "conv_1"
+}
+```
+
+### 9.2 Knowledge Base Management (Super Admin only)
+
+#### `GET /kb-articles`
+Retrieve approved knowledge base articles.
+- **Access**: `super_admin`
+
+#### `POST /kb-articles`
+Create new knowledge base article with keywords and branch scope.
+- **Access**: `super_admin`
+
+#### `PATCH /kb-articles/{id}`
+Update article title, content, keywords, or active status.
+- **Access**: `super_admin`
+
+#### `DELETE /kb-articles/{id}`
+Delete a knowledge base article.
+- **Access**: `super_admin`
+
+### 9.3 Public Website Chat Widget Endpoints (No Login Required)
+
+#### `POST /public/chat/start`
+Initialize public widget chat session with visitor details and consent.
+- **Access**: Public
+- **Request Body**:
+```json
+{
+  "name": "Ramesh Varma",
+  "phone": "+919876543210",
+  "branch_id": "branch_1",
+  "consent": true
+}
+```
+- **Response `200 OK`**:
+```json
+{
+  "conversationId": "conv_web_1732174000",
+  "welcomeMessage": {
+    "id": "msg_welcome_1",
+    "sender": "ai",
+    "text": "Hello! Welcome to RS Mens World. How can I help you find the perfect outfit today?"
+  }
+}
+```
+
+#### `POST /public/chat/{id}/message`
+Send customer message from website widget. The backend AI engine answers from approved Knowledge Base articles or initiates staff handover.
+- **Access**: Public
+- **Rules**:
+  1. AI answers strictly from approved KB articles.
+  2. Questions inquiring about live stock, price lock, or urgent delivery will never guarantee inventory hold; an immediate handover to store staff is offered.
+  3. Messages with "Talk to staff" or "human" mark conversation status as `pending` and notify branch staff.
+- **Response `200 OK`**:
+```json
+{
+  "customerMsg": { "id": "msg_c_1", "text": "What are your timings?" },
+  "aiMsg": { "id": "msg_a_1", "text": "All RS Mens World stores are open 7 days a week: Monday to Sunday: 10:00 AM to 9:30 PM." }
+}
+```
+
+#### Real-Time Sync Specification
+- **WebSocket / SSE Channel**: `/ws/conversations`
+- Emits event `conversation_updated` whenever customer, AI, or staff posts a new message, allowing 0-delay real-time synchronization between the public widget and staff inbox.
