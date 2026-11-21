@@ -1,7 +1,8 @@
 import { apiClient } from '@/lib/apiClient';
 import { mockDelay } from '@/mocks/mockAdapter';
 import { User } from '@/types/models';
-import { INITIAL_BRANCHES } from '@/mocks/data/branches';
+import { usersStorage } from '@/services/users';
+import { branchesStorage } from '@/services/branches';
 
 export const isUsingMocks = import.meta.env.VITE_USE_MOCKS !== 'false';
 
@@ -24,111 +25,74 @@ export interface AuthResponse {
   user: User;
 }
 
-// Mock users dictionary
-interface MockBranchUserConfig {
-  branchId: string;
-  code: string;
-  name: string;
-  pin: string;
-  userId: string;
-  fullName: string;
-}
-
-const MOCK_BRANCH_USERS: MockBranchUserConfig[] = [
-  {
-    branchId: 'branch_1',
-    code: 'B1',
-    name: 'Rajahmundry Main Branch',
-    pin: '1111',
-    userId: 'user_b1',
-    fullName: 'Rajahmundry Store Manager',
-  },
-  {
-    branchId: 'branch_2',
-    code: 'B2',
-    name: 'Kakinada Branch',
-    pin: '2222',
-    userId: 'user_b2',
-    fullName: 'Kakinada Store Manager',
-  },
-  {
-    branchId: 'branch_3',
-    code: 'B3',
-    name: 'Vijayawada Branch',
-    pin: '3333',
-    userId: 'user_b3',
-    fullName: 'Vijayawada Store Manager',
-  },
-  {
-    branchId: 'branch_4',
-    code: 'B4',
-    name: 'Guntur Branch',
-    pin: '4444',
-    userId: 'user_b4',
-    fullName: 'Guntur Store Manager',
-  },
-];
-
-const MOCK_SUPER_ADMIN: User = {
-  id: 'user_super_admin',
-  full_name: 'Super Admin',
-  role: 'super_admin',
-  branch_id: null,
-  branch_name: null,
-  email: 'admin@rsmensworld.com',
-  is_active: true,
-};
-
 /**
  * Perform login for Admin or Branch users
  */
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
   if (isUsingMocks) {
-    await mockDelay(400);
+    await mockDelay(300);
+
+    const users = await usersStorage.getAll();
+    const branches = await branchesStorage.getAll();
 
     if (credentials.type === 'admin') {
       const normalizedEmail = credentials.email.trim().toLowerCase();
-      if (
-        normalizedEmail === 'admin@rsmensworld.com' &&
-        credentials.password === 'Admin@123'
-      ) {
-        const token = `mock_admin_token_${Date.now()}`;
-        const user = { ...MOCK_SUPER_ADMIN };
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('rs_current_user', JSON.stringify(user));
-        return { token, user };
+      const adminUser = users.find(
+        (u) => u.role === 'super_admin' && u.email?.trim().toLowerCase() === normalizedEmail
+      );
+
+      if (!adminUser || adminUser.password !== credentials.password) {
+        throw new Error('Invalid email or password');
       }
-      throw new Error('Invalid email or password');
+
+      if (!adminUser.is_active) {
+        throw new Error('This account is currently deactivated. Please contact Head Office.');
+      }
+
+      // Update last login
+      await usersStorage.update(adminUser.id, { last_login_at: new Date().toISOString() });
+
+      const token = `mock_admin_token_${Date.now()}`;
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('rs_current_user', JSON.stringify(adminUser));
+      return { token, user: adminUser };
     }
 
     if (credentials.type === 'branch') {
-      const branchConfig = MOCK_BRANCH_USERS.find(
-        (b) => b.branchId === credentials.branchId
-      );
-
-      if (!branchConfig) {
+      const branch = branches.find((b) => b.id === credentials.branchId);
+      if (!branch) {
         throw new Error('Please select a valid branch');
       }
 
-      if (branchConfig.pin !== credentials.pin.trim()) {
+      if (!branch.is_active) {
+        throw new Error('This branch is currently deactivated.');
+      }
+
+      const branchUser = users.find(
+        (u) => u.branch_id === credentials.branchId && u.pin === credentials.pin.trim()
+      );
+
+      if (!branchUser) {
         throw new Error('Invalid PIN for the selected branch');
       }
 
-      const branch = INITIAL_BRANCHES.find((b) => b.id === credentials.branchId);
+      if (!branchUser.is_active) {
+        throw new Error('This account is currently deactivated. Please contact Head Office.');
+      }
 
-      const user: User = {
-        id: branchConfig.userId,
-        full_name: branchConfig.fullName,
-        role: 'branch_user',
-        branch_id: branchConfig.branchId,
-        branch_name: branch ? branch.name : branchConfig.name,
-        is_active: true,
+      // Ensure branch_name is populated
+      const fullBranchUser: User = {
+        ...branchUser,
+        branch_name: branch.name,
       };
 
-      const token = `mock_branch_token_${branchConfig.code}_${Date.now()}`;
+      // Update last login
+      await usersStorage.update(branchUser.id, { last_login_at: new Date().toISOString() });
+
+      const token = `mock_branch_token_${branch.code}_${Date.now()}`;
       localStorage.setItem('auth_token', token);
-      localStorage.setItem('rs_current_user', JSON.stringify(user));
-      return { token, user };
+      localStorage.setItem('rs_current_user', JSON.stringify(fullBranchUser));
+      return { token, user: fullBranchUser };
     }
 
     throw new Error('Unsupported login type');
@@ -149,7 +113,7 @@ export async function logout(): Promise<void> {
   const token = localStorage.getItem('auth_token');
 
   if (isUsingMocks) {
-    await mockDelay(200);
+    await mockDelay(150);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('rs_current_user');
     return;

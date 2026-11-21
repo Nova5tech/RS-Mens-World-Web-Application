@@ -6,9 +6,11 @@ export interface Branch {
   name: string;
   city: string;
   address: string;
+  phone?: string;
   timings?: string;
   wa_phone_id?: string;
   is_active: boolean;
+  users_count?: number;
 }
 
 export interface User {
@@ -18,8 +20,11 @@ export interface User {
   branch_id?: string | null;
   branch_name?: string | null;
   email?: string;
+  pin?: string;
+  password?: string;
   avatar?: string;
   is_active: boolean;
+  last_login_at?: string | null;
 }
 
 export interface PaginatedResponse<T> {

@@ -264,39 +264,126 @@ Retrieve the list of active retail store branches.
     "name": "Rajahmundry Main Branch",
     "city": "Rajahmundry",
     "address": "Main Road, Near Syamala Theatre, Rajahmundry, AP - 533101",
+    "phone": "+91 98765 43210",
     "timings": "10:00 AM - 9:30 PM",
     "wa_phone_id": "wa_b1_rajahmundry",
     "is_active": true
-  },
-  {
-    "id": "branch_2",
-    "code": "B2",
-    "name": "Kakinada Branch",
-    "city": "Kakinada",
-    "address": "Cinema Road, Opposite Bhanu Gudi, Kakinada, AP - 533003",
-    "timings": "10:00 AM - 9:30 PM",
-    "wa_phone_id": "wa_b2_kakinada",
-    "is_active": true
-  },
-  {
-    "id": "branch_3",
-    "code": "B3",
-    "name": "Vijayawada Branch",
-    "city": "Vijayawada",
-    "address": "M.G. Road, Governorpet, Vijayawada, AP - 520002",
-    "timings": "10:00 AM - 10:00 PM",
-    "wa_phone_id": "wa_b3_vijayawada",
-    "is_active": true
-  },
-  {
-    "id": "branch_4",
-    "code": "B4",
-    "name": "Guntur Branch",
-    "city": "Guntur",
-    "address": "Arundelpet, 4th Lane, Guntur, AP - 522002",
-    "timings": "10:00 AM - 9:30 PM",
-    "wa_phone_id": "wa_b4_guntur",
-    "is_active": true
   }
 ]
+```
+
+#### `POST /branches`
+Create a new store branch.
+
+- **Access**: `super_admin` only
+- **Request Body**:
+```json
+{
+  "code": "B5",
+  "name": "Vizag Beach Road Branch",
+  "city": "Visakhapatnam",
+  "address": "Beach Road, Pandurangapuram, Visakhapatnam, AP - 530003",
+  "phone": "+91 98480 12345",
+  "timings": "10:00 AM - 9:30 PM",
+  "wa_phone_id": "wa_b5_vizag",
+  "is_active": true
+}
+```
+- **Response `201 Created`**: Returns created `Branch` object.
+
+#### `PATCH /branches/{id}`
+Update details or toggle active status of a branch.
+
+- **Access**: `super_admin` only
+- **Request Body**: Partial `Branch` fields to update.
+- **Response `200 OK`**: Returns updated `Branch` object.
+
+---
+
+## 4. User Management Endpoints (Phase 2)
+
+### 4.1 Users
+
+#### `GET /users`
+Retrieve list of users across all branches.
+
+- **Access**: `super_admin` only
+- **Response `200 OK`**:
+```json
+[
+  {
+    "id": "user_super_admin",
+    "full_name": "Super Admin",
+    "role": "super_admin",
+    "branch_id": null,
+    "branch_name": null,
+    "email": "admin@rsmensworld.com",
+    "is_active": true,
+    "last_login_at": "2026-11-21T10:45:00Z"
+  },
+  {
+    "id": "user_b1",
+    "full_name": "Rajahmundry Store Manager",
+    "role": "branch_user",
+    "branch_id": "branch_1",
+    "branch_name": "Rajahmundry Main Branch",
+    "pin": "1111",
+    "is_active": true,
+    "last_login_at": "2026-11-21T09:15:00Z"
+  }
+]
+```
+
+#### `POST /users`
+Create a new staff user or super admin.
+
+- **Access**: `super_admin` only
+- **Request Body (Admin)**:
+```json
+{
+  "full_name": "Ramesh Varma",
+  "role": "super_admin",
+  "email": "ramesh@rsmensworld.com",
+  "password": "Password@123",
+  "is_active": true
+}
+```
+- **Request Body (Branch User)**:
+```json
+{
+  "full_name": "Kishore Kumar",
+  "role": "branch_user",
+  "branch_id": "branch_3",
+  "pin": "3333",
+  "is_active": true
+}
+```
+- **Response `201 Created`**: Returns created `User` object.
+
+#### `PATCH /users/{id}`
+Update user profile, branch assignment, or active status.
+
+- **Access**: `super_admin` only
+- **Rules**:
+  - Super admin cannot deactivate themselves (`400 Bad Request`).
+  - Last active super admin cannot be deactivated or deleted (`400 Bad Request`).
+- **Response `200 OK`**: Returns updated `User` object.
+
+#### `POST /users/{id}/reset-credential`
+Generate a new random password (for super admin) or PIN (for branch user) and return it once.
+
+- **Access**: `super_admin` only
+- **Response `200 OK`**:
+```json
+{
+  "newCredential": "Admin@842",
+  "type": "password"
+}
+```
+or for branch user:
+```json
+{
+  "newCredential": "4892",
+  "type": "pin"
+}
 ```

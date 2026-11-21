@@ -76,19 +76,18 @@ export const AppRouter: React.FC = () => {
 
         {/* Admin-only Routes */}
         <Route
-          path="/users-branches"
+          path="/users"
           element={
             <ProtectedRoute adminOnly>
               <UsersBranchesPage />
             </ProtectedRoute>
           }
         />
-        {/* Support /users alias directly as admin-only route */}
         <Route
-          path="/users"
+          path="/users-branches"
           element={
             <ProtectedRoute adminOnly>
-              <Navigate to="/users-branches" replace />
+              <UsersBranchesPage />
             </ProtectedRoute>
           }
         />

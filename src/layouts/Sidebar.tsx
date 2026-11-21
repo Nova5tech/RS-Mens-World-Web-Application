@@ -72,7 +72,7 @@ const navGroups: NavGroup[] = [
     groupName: 'INSIGHTS & CONTROL',
     items: [
       { name: 'Reports', path: '/reports', icon: BarChart3 },
-      { name: 'Users & Branches', path: '/users-branches', icon: Building2, adminOnly: true },
+      { name: 'Users & Branches', path: '/users', icon: Building2, adminOnly: true },
       { name: 'Settings', path: '/settings', icon: Settings, adminOnly: true },
     ],
   },
