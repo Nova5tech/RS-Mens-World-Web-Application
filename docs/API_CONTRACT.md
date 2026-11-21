@@ -387,3 +387,159 @@ or for branch user:
   "type": "pin"
 }
 ```
+
+---
+
+## 5. Customer Database & Petpooja Import Endpoints (Phase 3)
+
+### 5.1 Customers
+
+#### `GET /customers`
+Retrieve paginated list of customers with search, branch scoping, consent and status filters.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` is strictly scoped to their assigned `branch_id`. `super_admin` can filter by `branchId` or retrieve all branches.
+- **Query Parameters**:
+  - `page` (integer, default: 1): 1-based page index
+  - `pageSize` (integer, default: 20, max: 100): items per page
+  - `search` (string, optional): Search across name, phone, code, email
+  - `branchId` (string, optional): Branch identifier (`branch_1`, etc.)
+  - `status` (string, optional): `all` | `active` | `new` | `inactive`
+  - `consent` (string, optional): `all` | `yes` | `no`
+  - `type` (string, optional): `Regular` | `VIP` | `Repeat`
+  - `birthdayMonth` (integer, 1–12, optional)
+  - `anniversaryMonth` (integer, 1–12, optional)
+  - `source` (string, optional): Filter by acquisition source
+  - `sortBy` (string, optional, default: `last_interaction_at`)
+  - `sortOrder` (string, optional, `asc` | `desc`, default: `desc`)
+
+- **Response `200 OK`**:
+```json
+{
+  "items": [
+    {
+      "id": "cust_10248",
+      "code": "C-10248",
+      "name": "Rahul Kumar",
+      "phone": "+919876543210",
+      "email": "rahul.kumar@gmail.com",
+      "birthday": "1992-04-12",
+      "anniversary": "2019-11-20",
+      "branch_id": "branch_1",
+      "branch_name": "Rajahmundry Main Branch",
+      "customer_type": "Regular",
+      "status": "active",
+      "consent": true,
+      "consent_source": "petpooja_import",
+      "consent_at": "2024-03-15T10:00:00Z",
+      "opted_out_at": null,
+      "total_purchases": 18450,
+      "order_count": 9,
+      "avg_order_value": 2047,
+      "last_interaction_at": "2025-11-18T14:30:00Z",
+      "created_at": "2024-03-15T10:00:00Z",
+      "source": "Petpooja Import"
+    }
+  ],
+  "total": 200,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 10
+}
+```
+
+#### `GET /customers/counts`
+Retrieve customer tab aggregate counts (All, New, Active, Inactive) for the authenticated scope.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Query Parameters**:
+  - `branchId` (optional): Filter counts by branch
+- **Response `200 OK`**:
+```json
+{
+  "all": 200,
+  "new": 50,
+  "active": 125,
+  "inactive": 25
+}
+```
+
+#### `GET /customers/{id}`
+Retrieve a single customer record by ID with purchase history and consent details.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**: Returns `Customer` object.
+- **Error Responses**: `403 Forbidden` if `branch_user` accesses customer of another branch.
+
+#### `POST /customers`
+Register a new customer record.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "name": "Vikram Adiga",
+  "phone": "+919848011223",
+  "email": "vikram.adiga@gmail.com",
+  "branch_id": "branch_1",
+  "birthday": "1994-06-15",
+  "anniversary": "2021-12-08",
+  "customer_type": "Regular",
+  "consent": true
+}
+```
+- **Response `201 Created`**: Returns created `Customer` object with generated `code` (e.g. `C-10249`).
+- **Error Responses**: `409 Conflict` if phone number already exists in DB.
+
+#### `PATCH /customers/{id}`
+Update customer contact details, profile, or marketing consent.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**: Partial `Customer` fields.
+- **Response `200 OK`**: Returns updated `Customer` object.
+
+#### `DELETE /customers/{id}`
+Remove a customer record.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `204 No Content`**
+
+#### `POST /customers/bulk-upsert`
+Batch import customers from Petpooja POS. Performs phone de-duplication: inserts new customers and updates purchase totals for existing customers.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Request Body**:
+```json
+{
+  "items": [
+    {
+      "name": "Karthik Raja",
+      "phone": "+919876543210",
+      "email": "karthik@example.com",
+      "branch_id": "branch_1",
+      "total_purchases": 5400,
+      "order_count": 2,
+      "consent": true
+    }
+  ],
+  "batchMeta": {
+    "fileName": "petpooja_nov_export.xlsx",
+    "uploadedBy": "Super Admin"
+  }
+}
+```
+- **Response `200 OK`**: Returns created `ImportBatch` record.
+
+### 5.2 Import Batches
+
+#### `GET /imports`
+Retrieve past Petpooja import batch logs.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**: Returns array of `ImportBatch` objects.
+
+#### `GET /imports/{id}`
+Retrieve details and row validation log of a specific import batch.
+
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Response `200 OK`**: Returns `ImportBatch` object.

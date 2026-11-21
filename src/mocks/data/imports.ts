@@ -1,0 +1,40 @@
+import { ImportBatch } from '@/types/models';
+
+export const INITIAL_IMPORT_BATCHES: ImportBatch[] = [
+  {
+    id: 'batch_101',
+    file_name: 'Petpooja_Customer_Export_Nov2025.xlsx',
+    uploaded_by: 'Super Admin',
+    uploaded_at: '2025-11-10T14:30:00Z',
+    total: 150,
+    valid: 145,
+    created: 120,
+    updated: 25,
+    duplicates: 2,
+    invalid: 3,
+    status: 'completed',
+    branch_id: null,
+    branch_name: 'All Branches',
+    report_json: [
+      { name: 'Sanjay Verma', phone: '+919876500001', status: 'will_create' },
+      { name: 'Kavita Roy', phone: '+919876500002', status: 'will_update' },
+      { name: 'Unknown Dummy', phone: '12345', status: 'invalid_skipped', reason: 'Invalid 10-digit number' },
+      { name: 'Duplicate Row', phone: '+919876500001', status: 'duplicate_skipped', reason: 'Duplicate phone in file' },
+    ],
+  },
+  {
+    id: 'batch_100',
+    file_name: 'Rajahmundry_Diwali_Walkins.csv',
+    uploaded_by: 'Rajahmundry Store Manager',
+    uploaded_at: '2025-10-25T11:15:00Z',
+    total: 80,
+    valid: 78,
+    created: 65,
+    updated: 13,
+    duplicates: 1,
+    invalid: 1,
+    status: 'completed',
+    branch_id: 'branch_1',
+    branch_name: 'Rajahmundry Main Branch',
+  },
+];

@@ -13,6 +13,29 @@
   - Mobile layout verified (<1024px displays centered card on dark green background).
   - TypeScript & Vite build clean (`npm run build` zero errors).
 
+## Phase 3 — Customer Database + Petpooja Import (connector #1)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/customers/CustomersPage.tsx`: Pixel-close match to `docs/design/03-customers.png`. Tab chips with counts (All, New, Active, Inactive), Search & Filter bar (Search, Branch, Consent, Customer Type, Advanced Filters popover), Customer table with checkboxes, phone formatted in E.164/Indian display, branch badge, consent pills (✓ Yes / ✕ No), sortable columns, pagination (20/page), bulk actions floating bar (Export CSV with UTF-8 BOM, Change Type, Mark Opted-Out), row action menu (View, Edit, Mark Opted-Out, Delete).
+  - `src/features/customers/CustomerDrawer.tsx`: Customer profile details drawer with active pill, contact information, purchase summary card (Total Purchases ₹, Orders, Avg Order Value ₹), marketing consent details with opted-out timestamp, recent touchpoints/campaigns timeline, and edit/delete actions.
+  - `src/features/customers/AddEditCustomerDrawer.tsx`: Full customer registration and update form with 10-digit mobile validation, store branch selector (locked for branch users), birthday/anniversary dates, customer type, and WhatsApp consent toggle.
+  - `src/features/customers/ImportWizard.tsx`: Full-screen 5-step Petpooja import modal with drag & drop file upload (.xlsx, .xls, .csv), sample template download, automatic column mapping with fuzzy branch matching (e.g. "Rajahmundry", "RJY" -> B1), mobile number normalization, duplicate/invalid detection, review report with CSV download, batch progress simulation, and bulk upsert.
+  - `src/features/customers/ImportHistoryModal.tsx`: History modal displaying past Petpooja import batches and metrics.
+  - `src/lib/phone.ts` & `src/lib/format.ts`: Utilities for Indian mobile phone normalization, E.164 formatting, currency (₹), and date/relative time.
+  - `src/types/models.ts`: Added `Customer`, `ImportBatch`, `CustomerType`, `CustomerStatus` definitions.
+  - `src/mocks/data/customers.ts`: Seeded 200 realistic Indian customer records across all 4 branches.
+  - `src/mocks/data/imports.ts`: Seeded past Petpooja batch import logs.
+  - `src/services/customers.ts`: Implemented full customer service with filtering, pagination, branch isolation scoping, tab counts, and bulk upsert.
+  - `docs/API_CONTRACT.md`: Documented Section 5 Customer Database & Petpooja Import Endpoints (`GET/POST/PATCH/DELETE /customers`, `GET /customers/counts`, `POST /customers/bulk-upsert`, `GET /imports`, `GET /imports/{id}`).
+- **Self-Check Results**:
+  - Exact visual match to `docs/design/03-customers.png` verified.
+  - Import wizard validates phone numbers, detecting invalid numbers and duplicate rows.
+  - Re-importing existing phone numbers marks them as "Will Update" without creating duplicate records.
+  - Branch 1 user sees only Branch 1 customers.
+  - Tab counts (All, New, Active, Inactive) match filtered customer totals.
+  - CSV export downloads clean UTF-8 BOM file readable by Excel.
+  - TypeScript & Vite build clean (`npm run build` zero errors).
+
 ## Phase 2 — Users & Branches (Super Admin only)
 - **Status**: Completed & Verified
 - **Files Added / Changed**:
@@ -30,4 +53,27 @@
   - Creating a new branch user for Branch 3 persists and allows logging in as that branch user.
   - Deactivating a user immediately blocks login with `This account is currently deactivated`.
   - Self-deactivation and deactivating the last active super admin are strictly prevented with validation errors.
+  - TypeScript & Vite build clean (`npm run build` zero errors).
+
+## Phase 3 — Customer Database + Petpooja Import (connector #1)
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/customers/CustomersPage.tsx`: Pixel-close match to `docs/design/03-customers.png`. Tab chips with counts (All, New, Active, Inactive), Search & Filter bar (Search, Branch, Consent, Customer Type, Advanced Filters popover), Customer table with checkboxes, phone formatted in E.164/Indian display, branch badge, consent pills (✓ Yes / ✕ No), sortable columns, pagination (20/page), bulk actions floating bar (Export CSV with UTF-8 BOM, Change Type, Mark Opted-Out), row action menu (View, Edit, Mark Opted-Out, Delete).
+  - `src/features/customers/CustomerDrawer.tsx`: Customer profile details drawer with active pill, contact information, purchase summary card (Total Purchases ₹, Orders, Avg Order Value ₹), marketing consent details with opted-out timestamp, recent touchpoints/campaigns timeline, and edit/delete actions.
+  - `src/features/customers/AddEditCustomerDrawer.tsx`: Full customer registration and update form with 10-digit mobile validation, store branch selector (locked for branch users), birthday/anniversary dates, customer type, and WhatsApp consent toggle.
+  - `src/features/customers/ImportWizard.tsx`: Full-screen 5-step Petpooja import modal with drag & drop file upload (.xlsx, .xls, .csv), sample template download, automatic column mapping with fuzzy branch matching (e.g. "Rajahmundry", "RJY" -> B1), mobile number normalization, duplicate/invalid detection, review report with CSV download, batch progress simulation, and bulk upsert.
+  - `src/features/customers/ImportHistoryModal.tsx`: History modal displaying past Petpooja import batches and metrics.
+  - `src/lib/phone.ts` & `src/lib/format.ts`: Utilities for Indian mobile phone normalization, E.164 formatting, currency (₹), and date/relative time.
+  - `src/types/models.ts`: Added `Customer`, `ImportBatch`, `CustomerType`, `CustomerStatus` definitions.
+  - `src/mocks/data/customers.ts`: Seeded 200 realistic Indian customer records across all 4 branches.
+  - `src/mocks/data/imports.ts`: Seeded past Petpooja batch import logs.
+  - `src/services/customers.ts`: Implemented full customer service with filtering, pagination, branch isolation scoping, tab counts, and bulk upsert.
+  - `docs/API_CONTRACT.md`: Documented Section 5 Customer Database & Petpooja Import Endpoints (`GET/POST/PATCH/DELETE /customers`, `GET /customers/counts`, `POST /customers/bulk-upsert`, `GET /imports`, `GET /imports/{id}`).
+- **Self-Check Results**:
+  - Exact visual match to `docs/design/03-customers.png` verified.
+  - Import wizard validates phone numbers, detecting invalid numbers and duplicate rows.
+  - Re-importing existing phone numbers marks them as "Will Update" without creating duplicate records.
+  - Branch 1 user sees only Branch 1 customers.
+  - Tab counts (All, New, Active, Inactive) match filtered customer totals.
+  - CSV export downloads clean UTF-8 BOM file readable by Excel.
   - TypeScript & Vite build clean (`npm run build` zero errors).
