@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" fill="none" stroke="#3EDBA0" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- hook -->
+  <path d="M40 14 a8 8 0 1 1 8 8 v6"/>
+  <!-- body -->
+  <path d="M48 28 L8 50 Q4 52.5 6 55 Q7 56 10 56 H86 Q89 56 90 55 Q92 52.5 88 50 Z"/>
+</svg>

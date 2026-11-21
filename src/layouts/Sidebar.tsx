@@ -134,9 +134,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
       <div className="px-5 pt-6 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-accent-brand/10 border border-accent-brand/20 flex items-center justify-center flex-shrink-0">
-              <HangerIcon className="w-5 h-5 text-accent-brand" />
-            </div>
+            <img
+              src="/images/logo-hanger.svg"
+              alt="RS Mens World"
+              className="w-8 h-8 object-contain"
+            />
             <div>
               <h1 className="text-base font-bold text-white tracking-tight leading-tight">
                 RS Mens World

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,14 +16,14 @@ import {
   AlertCircle,
   Loader2,
   LogIn,
-  CheckCircle2,
+  Check,
   ChevronDown,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/useAuth';
 import { getBranches } from '@/services/branches';
 import { Branch } from '@/types/models';
-import { HangerIcon } from '@/layouts/Sidebar';
 
 // Zod schemas for validation
 const adminSchema = z.object({
@@ -60,6 +60,10 @@ export const LoginPage: React.FC = () => {
   const [showPin, setShowPin] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Custom Dropdown State
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   // If user is already authenticated, redirect to /dashboard
   useEffect(() => {
     if (isAuthenticated && !isAuthLoading) {
@@ -74,7 +78,8 @@ export const LoginPage: React.FC = () => {
     getBranches()
       .then((data) => {
         if (mounted) {
-          setBranches(data.filter((b) => b.is_active));
+          const active = data.filter((b) => b.is_active);
+          setBranches(active);
           setBranchesLoading(false);
         }
       })
@@ -86,6 +91,17 @@ export const LoginPage: React.FC = () => {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Form for Head Office (Admin)
@@ -105,20 +121,26 @@ export const LoginPage: React.FC = () => {
   const {
     register: registerBranch,
     handleSubmit: handleSubmitBranch,
+    setValue: setBranchValue,
+    watch: watchBranch,
     formState: { errors: branchErrors, isSubmitting: isBranchSubmitting },
   } = useForm<BranchFormValues>({
     resolver: zodResolver(branchSchema),
     defaultValues: {
-      branchId: 'branch_2',
+      branchId: 'branch_1',
       pin: '',
     },
   });
+
+  const selectedBranchId = watchBranch('branchId');
+  const selectedBranch = branches.find((b) => b.id === selectedBranchId) || branches[0];
 
   const onTabChange = (tab: 'admin' | 'branch') => {
     setActiveTab(tab);
     setAuthError(null);
     setShowPassword(false);
     setShowPin(false);
+    setIsDropdownOpen(false);
   };
 
   const onAdminSubmit = async (data: AdminFormValues) => {
@@ -154,107 +176,150 @@ export const LoginPage: React.FC = () => {
   };
 
   const isSubmitting = isAdminSubmitting || isBranchSubmitting;
+  const showDemoLogins = import.meta.env.VITE_SHOW_DEMO_LOGINS === 'true';
+
+  // Helper format branch label: "Branch 1 – Rajahmandary Main Branch"
+  const getBranchLabel = (b: Branch) => {
+    const num = b.code.replace(/\D/g, '') || '1';
+    return `Branch ${num} – ${b.name}`;
+  };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#F4F7F6]">
-      {/* Left Panel: Deep Green Brand Panel with Organic Curves & Visual Depth */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 bg-gradient-to-br from-[#0B3B2E] via-[#0E4737] to-[#072B21] flex-col justify-between p-10 xl:p-14 text-white relative overflow-hidden select-none">
-        {/* Soft mint curved organic waves backdrop */}
-        <div className="absolute -bottom-24 -right-24 w-[480px] h-[480px] rounded-full bg-accent-brand/10 blur-2xl pointer-events-none" />
-        <div className="absolute top-1/2 -right-16 w-80 h-80 rounded-full bg-emerald-500/10 blur-xl pointer-events-none" />
-
-        {/* Decorative organic curved lines overlay */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-20"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 600 800"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M 200,0 C 400,200 100,500 500,800 L 600,800 L 600,0 Z"
-            fill="#46D68C"
-            fillOpacity="0.15"
+    <div className="min-h-screen w-full flex bg-[#0B3B2E] lg:bg-transparent relative overflow-hidden select-none">
+      {/* Background Layer with Store Photo and Wave Gradients */}
+      <div className="absolute inset-0 z-0 hidden lg:flex pointer-events-none">
+        {/* Left deep green solid-to-transparent backdrop */}
+        <div className="w-[55%] h-full bg-[#073528] relative">
+          {/* Store Photo on right side of left panel with left-to-right fade mask */}
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-45 mix-blend-luminosity"
+            style={{
+              backgroundImage: 'url(/images/login-store.jpg)',
+              maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.85) 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.85) 100%)',
+            }}
           />
-          <path
-            d="M 350,0 C 500,300 250,600 600,750 L 600,0 Z"
-            fill="#46D68C"
-            fillOpacity="0.1"
-          />
-        </svg>
-
-        {/* Top: Brand Logo & Heading */}
-        <div className="relative z-10 flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-accent-brand/10 border border-accent-brand/20 flex items-center justify-center flex-shrink-0 shadow-xs">
-            <HangerIcon className="w-7 h-7 text-accent-brand" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight leading-tight">
-              RS Mens World
-            </h1>
-            <p className="text-[11px] font-semibold text-accent-brand tracking-wider uppercase mt-0.5">
-              MULTI-BRANCH RETAIL & CUSTOMER ENGAGEMENT
-            </p>
-          </div>
+          {/* Dark green gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#073528] via-[#073528]/80 to-transparent" />
         </div>
 
-        {/* Center: Main Section Title & 4 Feature Cards */}
-        <div className="relative z-10 my-auto py-6">
-          <h2 className="text-3xl xl:text-4xl font-extrabold text-white tracking-tight leading-tight">
-            Branch Sign In
+        {/* Right backdrop: mint transition and page background */}
+        <div className="w-[45%] h-full bg-[#EBF7F2] relative overflow-hidden">
+          {/* Soft radial glow */}
+          <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-accent-brand/15 blur-3xl" />
+        </div>
+
+        {/* Large mint organic curved waves sweeping from bottom-center up into the right */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 1671 941"
+          fill="none"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="mintWaveGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#25A56F" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="#46D68C" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#8EF0C6" stopOpacity="0.95" />
+            </linearGradient>
+            <linearGradient id="mintWaveGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#46D68C" stopOpacity="0.3" />
+              <stop offset="70%" stopColor="#A7F3D0" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="#D1FAE5" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+
+          {/* Deeper mint wave path */}
+          <path
+            d="M 680,941 C 740,780 780,620 950,420 C 1080,260 1200,140 1450,40 L 1671,0 L 1671,941 Z"
+            fill="url(#mintWaveGrad1)"
+          />
+
+          {/* Lighter mint foreground sweeping wave */}
+          <path
+            d="M 740,941 C 820,800 890,660 1080,480 C 1220,340 1380,200 1671,110 L 1671,941 Z"
+            fill="url(#mintWaveGrad2)"
+          />
+        </svg>
+      </div>
+
+      {/* Left Panel: Content (approx 55% width) */}
+      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-12 xl:p-16 text-white relative z-10 select-none">
+        {/* Top: Logo row */}
+        <div>
+          <div className="flex items-center gap-4">
+            <img
+              src="/images/logo-hanger.svg"
+              alt="RS Mens World Logo"
+              className="h-14 w-auto object-contain flex-shrink-0"
+            />
+            <h1 className="text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-none">
+              RS Mens World
+            </h1>
+          </div>
+          <p className="text-sm font-semibold text-white/95 uppercase tracking-[0.25em] mt-3.5">
+            MULTI-BRANCH RETAIL &amp; CUSTOMER ENGAGEMENT
+          </p>
+        </div>
+
+        {/* Center: Headings & 4 Feature Rows */}
+        <div className="my-auto py-8">
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-white tracking-tight">
+            {activeTab === 'branch' ? 'Branch Sign In' : 'Head Office Sign In'}
           </h2>
-          <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-            Access your branch dashboard
+          <p className="text-xl xl:text-2xl text-white/90 mt-2 font-normal">
+            {activeTab === 'branch' ? 'Access your branch dashboard' : 'Access the admin console'}
           </p>
 
-          {/* 4 Feature Cards with Accent Icon Tiles */}
-          <div className="mt-8 space-y-3.5 max-w-md">
-            {/* Feature 1 */}
-            <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.06] border border-white/5 backdrop-blur-xs transition-all hover:bg-white/[0.09]">
-              <div className="w-10 h-10 rounded-xl bg-emerald-800/80 border border-emerald-600/30 flex items-center justify-center text-accent-brand flex-shrink-0">
-                <Store className="w-5 h-5" strokeWidth={1.75} />
+          {/* 4 Feature Rows: NO card backgrounds, 56px rounded-xl solid teal tile */}
+          <div className="mt-10 space-y-6 max-w-lg">
+            {/* Row 1 */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#0F765A] flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                <Store className="w-7 h-7" strokeWidth={2} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Branch-wise Access</h3>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <h3 className="text-lg font-bold text-white leading-snug">Branch-wise Access</h3>
+                <p className="text-sm text-white/85 leading-snug mt-0.5">
                   Manage your branch operations
                 </p>
               </div>
             </div>
 
-            {/* Feature 2 */}
-            <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.06] border border-white/5 backdrop-blur-xs transition-all hover:bg-white/[0.09]">
-              <div className="w-10 h-10 rounded-xl bg-emerald-800/80 border border-emerald-600/30 flex items-center justify-center text-accent-brand flex-shrink-0">
-                <Users className="w-5 h-5" strokeWidth={1.75} />
+            {/* Row 2 */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#0F765A] flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                <Users className="w-7 h-7" strokeWidth={2} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Leads & Customers</h3>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <h3 className="text-lg font-bold text-white leading-snug">Leads &amp; Customers</h3>
+                <p className="text-sm text-white/85 leading-snug mt-0.5">
                   Track and engage customers
                 </p>
               </div>
             </div>
 
-            {/* Feature 3 */}
-            <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.06] border border-white/5 backdrop-blur-xs transition-all hover:bg-white/[0.09]">
-              <div className="w-10 h-10 rounded-xl bg-emerald-800/80 border border-emerald-600/30 flex items-center justify-center text-accent-brand flex-shrink-0">
-                <Megaphone className="w-5 h-5" strokeWidth={1.75} />
+            {/* Row 3 */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#0F765A] flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                <Megaphone className="w-7 h-7" strokeWidth={2} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Campaigns</h3>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <h3 className="text-lg font-bold text-white leading-snug">Campaigns</h3>
+                <p className="text-sm text-white/85 leading-snug mt-0.5">
                   Run WhatsApp campaigns
                 </p>
               </div>
             </div>
 
-            {/* Feature 4 */}
-            <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.06] border border-white/5 backdrop-blur-xs transition-all hover:bg-white/[0.09]">
-              <div className="w-10 h-10 rounded-xl bg-emerald-800/80 border border-emerald-600/30 flex items-center justify-center text-accent-brand flex-shrink-0">
-                <BarChart3 className="w-5 h-5" strokeWidth={1.75} />
+            {/* Row 4 */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#0F765A] flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                <BarChart3 className="w-7 h-7" strokeWidth={2} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Branch Reports</h3>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <h3 className="text-lg font-bold text-white leading-snug">Branch Reports</h3>
+                <p className="text-sm text-white/85 leading-snug mt-0.5">
                   View your branch performance
                 </p>
               </div>
@@ -263,263 +328,193 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Bottom Trust Line */}
-        <div className="relative z-10 pt-4 border-t border-white/10 flex flex-wrap items-center gap-4 text-xs text-slate-300">
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-accent-brand" strokeWidth={2} />
-            <span>Secure Login</span>
-          </div>
-          <span className="text-slate-500">•</span>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-accent-brand" strokeWidth={2} />
-            <span>Role-based Access</span>
-          </div>
-          <span className="text-slate-500">•</span>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-accent-brand" strokeWidth={2} />
-            <span>Multi-branch</span>
-          </div>
+        <div className="flex items-center gap-2.5 text-sm text-white/85">
+          <ShieldCheck className="w-5 h-5 text-accent-brand flex-shrink-0" strokeWidth={2.2} />
+          <span>Secure Login</span>
+          <span className="text-accent-brand">•</span>
+          <span>Role-based Access</span>
+          <span className="text-accent-brand">•</span>
+          <span>Multi-branch</span>
         </div>
       </div>
 
-      {/* Right Panel: Floating Card with 24px radius & generous padding */}
-      <div className="flex-1 flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12 overflow-y-auto">
-        <div className="w-full max-w-lg">
+      {/* Right Panel: Floating Card */}
+      <div className="flex-1 flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12 relative z-20 overflow-y-auto">
+        <div className="w-full max-w-[560px]">
           {/* Mobile-only Header */}
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-sidebar-bg flex items-center justify-center shadow-md">
-              <HangerIcon className="w-6 h-6 text-accent-brand" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-app-text leading-tight">
-                RS Mens World
-              </h1>
-              <p className="text-xs text-app-muted">Customer Engagement</p>
-            </div>
+          <div className="lg:hidden flex flex-col items-center justify-center text-center gap-2 mb-8">
+            <img
+              src="/images/logo-hanger.svg"
+              alt="RS Mens World"
+              className="h-12 w-auto object-contain"
+            />
+            <h1 className="text-2xl font-extrabold text-white">RS Mens World</h1>
+            <p className="text-xs font-semibold text-accent-brand uppercase tracking-wider">
+              MULTI-BRANCH RETAIL &amp; CUSTOMER ENGAGEMENT
+            </p>
           </div>
 
-          {/* Login Card (24px radius, generous padding, soft card shadow) */}
-          <div className="bg-white rounded-3xl border border-border-card shadow-card p-8 sm:p-10 transition-all">
-            {/* Segmented Tab Control with sliding active pill */}
-            <div className="grid grid-cols-2 p-1.5 bg-[#F1F5F4] rounded-2xl mb-7 text-xs font-semibold">
+          {/* White Card: radius 28px, 40px padding, large soft shadow */}
+          <div className="bg-white rounded-[28px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] border border-slate-100 p-8 sm:p-10 transition-all">
+            {/* Segmented Control at Top */}
+            <div className="grid grid-cols-2 p-1.5 bg-[#F1F4F3] rounded-2xl mb-8">
               <button
                 type="button"
                 onClick={() => onTabChange('admin')}
                 className={cn(
-                  'h-10 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-center gap-2 select-none',
+                  'h-12 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2.5 select-none text-sm font-semibold',
                   activeTab === 'admin'
-                    ? 'bg-primary-brand text-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-app-text font-medium'
+                    ? 'bg-[#0F4C3A] text-white shadow-md'
+                    : 'text-slate-800 hover:text-black font-semibold'
                 )}
               >
-                <Building2 className="w-4 h-4" strokeWidth={1.75} />
+                <Building2 className="w-5 h-5" strokeWidth={2} />
                 <span>Head Office (Admin)</span>
               </button>
               <button
                 type="button"
                 onClick={() => onTabChange('branch')}
                 className={cn(
-                  'h-10 rounded-xl transition-all duration-150 cursor-pointer flex items-center justify-center gap-2 select-none',
+                  'h-12 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2.5 select-none text-sm font-semibold',
                   activeTab === 'branch'
-                    ? 'bg-primary-brand text-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-app-text font-medium'
+                    ? 'bg-[#0F4C3A] text-white shadow-md'
+                    : 'text-slate-800 hover:text-black font-semibold'
                 )}
               >
-                <Store className="w-4 h-4" strokeWidth={1.75} />
+                <Store className="w-5 h-5" strokeWidth={2} />
                 <span>Branch Login</span>
               </button>
             </div>
 
             {/* Card Heading */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-app-text tracking-tight">
-                {activeTab === 'branch' ? 'Branch Login' : 'Head Office (Admin)'}
+            <div className="mb-7">
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                {activeTab === 'branch' ? 'Branch Login' : 'Head Office Login'}
               </h2>
-              <p className="text-xs sm:text-sm text-app-muted mt-1">
+              <p className="text-base text-slate-500 mt-1.5">
                 {activeTab === 'branch'
                   ? 'Choose your branch and enter your credentials.'
-                  : 'Enter your credentials to access the executive dashboard.'}
+                  : 'Sign in with your admin email and password.'}
               </p>
             </div>
 
-            {/* Error Message Alert */}
+            {/* Auth Error Alert */}
             {authError && (
               <div
                 role="alert"
-                className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 animate-in fade-in duration-150"
+                className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3 animate-in fade-in duration-150"
               >
-                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" strokeWidth={1.75} />
                 <div className="flex-1 font-medium leading-tight">{authError}</div>
               </div>
             )}
 
-            {/* Tab Form: Head Office (Admin) */}
-            {activeTab === 'admin' && (
-              <form
-                onSubmit={handleSubmitAdmin(onAdminSubmit)}
-                className="space-y-4 animate-in fade-in duration-150"
-              >
-                {/* Email Field: 48px tall */}
-                <div>
-                  <label
-                    htmlFor="admin-email"
-                    className="block text-xs font-semibold text-app-text mb-1.5"
-                  >
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-app-muted">
-                      <Mail className="w-[18px] h-[18px]" strokeWidth={1.75} />
-                    </div>
-                    <input
-                      id="admin-email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="admin@rsmensworld.com"
-                      {...registerAdmin('email')}
-                      className={cn(
-                        'w-full h-12 pl-10 pr-3 text-sm bg-white border rounded-xl text-app-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-brand focus:border-transparent transition-all',
-                        adminErrors.email ? 'border-red-400' : 'border-border-card'
-                      )}
-                    />
-                  </div>
-                  {adminErrors.email && (
-                    <p className="text-xs font-medium text-red-600 mt-1">
-                      {adminErrors.email.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Password Field: 48px tall */}
-                <div>
-                  <label
-                    htmlFor="admin-password"
-                    className="block text-xs font-semibold text-app-text mb-1.5"
-                  >
-                    Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-app-muted">
-                      <Lock className="w-[18px] h-[18px]" strokeWidth={1.75} />
-                    </div>
-                    <input
-                      id="admin-password"
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      placeholder="••••••••"
-                      {...registerAdmin('password')}
-                      className={cn(
-                        'w-full h-12 pl-10 pr-10 text-sm bg-white border rounded-xl text-app-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-brand focus:border-transparent transition-all',
-                        adminErrors.password ? 'border-red-400' : 'border-border-card'
-                      )}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-app-muted hover:text-app-text cursor-pointer"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-[18px] h-[18px]" strokeWidth={1.75} />
-                      ) : (
-                        <Eye className="w-[18px] h-[18px]" strokeWidth={1.75} />
-                      )}
-                    </button>
-                  </div>
-                  {adminErrors.password && (
-                    <p className="text-xs font-medium text-red-600 mt-1">
-                      {adminErrors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Demo Helper Box */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-app-muted flex items-center justify-between">
-                  <span>Demo: <strong className="text-app-text font-medium">admin@rsmensworld.com</strong></span>
-                  <span className="font-mono bg-white border border-slate-200 px-2 py-0.5 rounded text-app-text text-[11px]">
-                    Admin@123
-                  </span>
-                </div>
-
-                {/* Submit Button: 52px tall */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full h-[52px] mt-2 bg-primary-brand hover:bg-[#0B3B2E] text-white text-sm font-semibold rounded-xl shadow-card transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Signing in...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="w-5 h-5" strokeWidth={1.75} />
-                      <span>Sign In</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-
-            {/* Tab Form: Branch Login */}
+            {/* Branch Login Form */}
             {activeTab === 'branch' && (
               <form
                 onSubmit={handleSubmitBranch(onBranchSubmit)}
-                className="space-y-4 animate-in fade-in duration-150"
+                className="space-y-6 animate-in fade-in duration-150"
               >
-                {/* Select Branch Dropdown: 48px tall */}
-                <div>
+                {/* Select Branch Custom Dropdown */}
+                <div className="relative" ref={dropdownRef}>
                   <label
-                    htmlFor="branch-select"
-                    className="block text-xs font-semibold text-app-text mb-1.5"
+                    id="branch-label"
+                    className="block text-sm font-semibold text-slate-900 mb-2"
                   >
                     Select Branch
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-app-muted">
-                      <Store className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                  <input type="hidden" {...registerBranch('branchId')} />
+
+                  {/* Dropdown Trigger: 56px, radius 14px, dark green border when open */}
+                  <button
+                    type="button"
+                    aria-labelledby="branch-label"
+                    aria-haspopup="listbox"
+                    aria-expanded={isDropdownOpen}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className={cn(
+                      'w-full h-14 px-4 rounded-[14px] bg-white border flex items-center justify-between text-left transition-all cursor-pointer',
+                      isDropdownOpen
+                        ? 'border-[#0F4C3A] border-[1.5px] ring-2 ring-[#0F4C3A]/10'
+                        : branchErrors.branchId
+                        ? 'border-red-400'
+                        : 'border-slate-300 hover:border-slate-400'
+                    )}
+                  >
+                    <div className="flex items-center gap-3 truncate">
+                      <Store className="w-5 h-5 text-[#0F4C3A] flex-shrink-0" strokeWidth={2} />
+                      <span className="font-bold text-slate-900 text-base truncate">
+                        {branchesLoading
+                          ? 'Loading branches...'
+                          : selectedBranch
+                          ? getBranchLabel(selectedBranch)
+                          : 'Choose your branch...'}
+                      </span>
                     </div>
-                    <select
-                      id="branch-select"
-                      disabled={branchesLoading}
-                      {...registerBranch('branchId')}
+                    <ChevronDown
                       className={cn(
-                        'w-full h-12 pl-10 pr-9 text-sm bg-white border rounded-xl text-app-text focus:outline-none focus:ring-2 focus:ring-accent-brand focus:border-transparent transition-all appearance-none cursor-pointer',
-                        branchErrors.branchId ? 'border-red-400' : 'border-border-card'
+                        'w-5 h-5 text-slate-700 transition-transform duration-200 flex-shrink-0',
+                        isDropdownOpen && 'rotate-180'
                       )}
+                      strokeWidth={2}
+                    />
+                  </button>
+
+                  {/* Custom Dropdown Menu */}
+                  {isDropdownOpen && (
+                    <div
+                      role="listbox"
+                      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[14px] shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
                     >
-                      <option value="">
-                        {branchesLoading ? 'Loading branches...' : 'Choose your branch...'}
-                      </option>
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                    {/* Single custom chevron dropdown arrow */}
-                    <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-app-muted">
-                      <ChevronDown className="w-4 h-4" strokeWidth={1.75} />
+                      {branches.map((b) => {
+                        const isSelected = b.id === selectedBranchId;
+                        return (
+                          <div
+                            key={b.id}
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => {
+                              setBranchValue('branchId', b.id, { shouldValidate: true });
+                              setIsDropdownOpen(false);
+                            }}
+                            className={cn(
+                              'flex items-center justify-between px-3.5 py-3 rounded-xl cursor-pointer text-sm font-semibold transition-colors',
+                              isSelected
+                                ? 'bg-[#CFF5E3] text-slate-900'
+                                : 'text-slate-800 hover:bg-slate-50'
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Store className="w-5 h-5 text-[#0F4C3A]" strokeWidth={2} />
+                              <span className="font-bold">{getBranchLabel(b)}</span>
+                            </div>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-[#0F4C3A]" strokeWidth={2.5} />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  )}
+
                   {branchErrors.branchId && (
-                    <p className="text-xs font-medium text-red-600 mt-1">
+                    <p className="text-xs font-medium text-red-600 mt-1.5">
                       {branchErrors.branchId.message}
                     </p>
                   )}
                 </div>
 
-                {/* Password / PIN Field: 48px tall */}
+                {/* Password / PIN: 56px tall */}
                 <div>
                   <label
                     htmlFor="branch-pin"
-                    className="block text-xs font-semibold text-app-text mb-1.5"
+                    className="block text-sm font-semibold text-slate-900 mb-2"
                   >
                     Password / PIN
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-app-muted">
-                      <Lock className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-700">
+                      <Lock className="w-5 h-5" strokeWidth={1.75} />
                     </div>
                     <input
                       id="branch-pin"
@@ -529,55 +524,44 @@ export const LoginPage: React.FC = () => {
                       placeholder="Enter 4–6 digit PIN or password"
                       {...registerBranch('pin')}
                       className={cn(
-                        'w-full h-12 pl-10 pr-10 text-sm bg-white border rounded-xl text-app-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-brand focus:border-transparent transition-all font-mono',
-                        branchErrors.pin ? 'border-red-400' : 'border-border-card'
+                        'w-full h-14 pl-12 pr-12 text-base bg-white border rounded-[14px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F4C3A] focus:border-[1.5px] focus:ring-2 focus:ring-[#0F4C3A]/10 transition-all font-mono',
+                        branchErrors.pin ? 'border-red-400' : 'border-slate-300'
                       )}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPin(!showPin)}
                       aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-app-muted hover:text-app-text cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-600 hover:text-slate-900 cursor-pointer"
                     >
                       {showPin ? (
-                        <EyeOff className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                        <EyeOff className="w-5 h-5" strokeWidth={1.75} />
                       ) : (
-                        <Eye className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                        <Eye className="w-5 h-5" strokeWidth={1.75} />
                       )}
                     </button>
                   </div>
                   {branchErrors.pin && (
-                    <p className="text-xs font-medium text-red-600 mt-1">
+                    <p className="text-xs font-medium text-red-600 mt-1.5">
                       {branchErrors.pin.message}
                     </p>
                   )}
                 </div>
 
-                {/* Branch PIN Demo Box */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-app-muted">
-                  <div className="font-semibold text-app-text mb-1">Demo PIN Reference:</div>
-                  <div className="grid grid-cols-2 gap-1 text-[11px] font-mono text-slate-600">
-                    <span>B1 Rajahmundry: 1111</span>
-                    <span>B2 Kakinada: 2222</span>
-                    <span>B3 Vijayawada: 3333</span>
-                    <span>B4 Guntur: 4444</span>
-                  </div>
-                </div>
-
-                {/* Submit Button: 52px tall with LogIn icon */}
+                {/* Sign In Button: 60px tall, radius 14px, primary dark green */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-[52px] mt-2 bg-primary-brand hover:bg-[#0B3B2E] text-white text-sm font-semibold rounded-xl shadow-card transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full h-[60px] bg-[#0F4C3A] hover:bg-[#0B3B2E] text-white text-lg font-semibold rounded-[14px] shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Verifying & Signing in...</span>
+                      <span>Signing In...</span>
                     </>
                   ) : (
                     <>
-                      <LogIn className="w-5 h-5" strokeWidth={1.75} />
+                      <LogIn className="w-5 h-5" strokeWidth={2} />
                       <span>Sign In</span>
                     </>
                   )}
@@ -585,17 +569,130 @@ export const LoginPage: React.FC = () => {
               </form>
             )}
 
-            {/* Back to Role Selection / Helper footer */}
-            <div className="mt-6 text-center">
+            {/* Admin (Head Office) Form */}
+            {activeTab === 'admin' && (
+              <form
+                onSubmit={handleSubmitAdmin(onAdminSubmit)}
+                className="space-y-6 animate-in fade-in duration-150"
+              >
+                {/* Email Field: 56px tall */}
+                <div>
+                  <label
+                    htmlFor="admin-email"
+                    className="block text-sm font-semibold text-slate-900 mb-2"
+                  >
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-700">
+                      <Mail className="w-5 h-5" strokeWidth={1.75} />
+                    </div>
+                    <input
+                      id="admin-email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="admin@rsmensworld.com"
+                      {...registerAdmin('email')}
+                      className={cn(
+                        'w-full h-14 pl-12 pr-4 text-base bg-white border rounded-[14px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F4C3A] focus:border-[1.5px] focus:ring-2 focus:ring-[#0F4C3A]/10 transition-all',
+                        adminErrors.email ? 'border-red-400' : 'border-slate-300'
+                      )}
+                    />
+                  </div>
+                  {adminErrors.email && (
+                    <p className="text-xs font-medium text-red-600 mt-1.5">
+                      {adminErrors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password Field: 56px tall */}
+                <div>
+                  <label
+                    htmlFor="admin-password"
+                    className="block text-sm font-semibold text-slate-900 mb-2"
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-700">
+                      <Lock className="w-5 h-5" strokeWidth={1.75} />
+                    </div>
+                    <input
+                      id="admin-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder="Enter admin password"
+                      {...registerAdmin('password')}
+                      className={cn(
+                        'w-full h-14 pl-12 pr-12 text-base bg-white border rounded-[14px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#0F4C3A] focus:border-[1.5px] focus:ring-2 focus:ring-[#0F4C3A]/10 transition-all',
+                        adminErrors.password ? 'border-red-400' : 'border-slate-300'
+                      )}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-600 hover:text-slate-900 cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" strokeWidth={1.75} />
+                      ) : (
+                        <Eye className="w-5 h-5" strokeWidth={1.75} />
+                      )}
+                    </button>
+                  </div>
+                  {adminErrors.password && (
+                    <p className="text-xs font-medium text-red-600 mt-1.5">
+                      {adminErrors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Sign In Button: 60px tall */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full h-[60px] bg-[#0F4C3A] hover:bg-[#0B3B2E] text-white text-lg font-semibold rounded-[14px] shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Signing In...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="w-5 h-5" strokeWidth={2} />
+                      <span>Sign In</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* Back to Role Selection / Switch link */}
+            <div className="mt-8 text-center">
               <button
                 type="button"
                 onClick={() => onTabChange(activeTab === 'branch' ? 'admin' : 'branch')}
-                className="text-xs font-medium text-app-muted hover:text-primary-brand transition-colors cursor-pointer"
+                className="text-sm font-semibold text-[#0F4C3A] hover:underline transition-colors cursor-pointer inline-flex items-center gap-1.5"
               >
-                ← {activeTab === 'branch' ? 'Switch to Head Office (Admin)' : 'Switch to Branch Login'}
+                <span>←</span>
+                <span>{activeTab === 'branch' ? 'Back to Role Selection' : 'Switch to Branch Login'}</span>
               </button>
             </div>
           </div>
+
+          {/* Demo Credentials only when VITE_SHOW_DEMO_LOGINS === 'true' */}
+          {showDemoLogins && (
+            <div className="mt-4 text-center text-xs text-slate-500 bg-white/80 backdrop-blur-xs py-2 px-4 rounded-xl border border-slate-200/50 max-w-sm mx-auto">
+              {activeTab === 'admin' ? (
+                <span>Demo Admin: <strong>admin@rsmensworld.com</strong> / <strong>Admin@123</strong></span>
+              ) : (
+                <span>Demo PINs: B1: <strong>1111</strong>, B2: <strong>2222</strong>, B3: <strong>3333</strong>, B4: <strong>4444</strong></span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
