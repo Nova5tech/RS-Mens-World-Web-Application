@@ -1217,3 +1217,128 @@ Retrieve tabular analytics with date range and branch scoping.
   - `date_range` (string, optional)
   - `format` (string, optional): `json` (default) or `csv`
 - **Response `200 OK`**: Array of report objects, or direct CSV download when `format=csv` (encoded in UTF-8 with BOM `\uFEFF`).
+
+
+---
+
+## 11. Settings, Audit Log & Notifications Endpoints (Phase 9)
+
+### 11.1 Settings
+
+#### `GET /settings`
+Retrieve business profile, campaign dispatch constraints, and integration health statuses.
+- **Access**: Super Admin only (`super_admin`)
+- **Response `200 OK`**:
+```json
+{
+  "business_profile": {
+    "name": "RS Mens World",
+    "tagline": "Multi-Branch Retail & Premium Menswear",
+    "support_phone": "+91 98490 12345",
+    "support_email": "care@rsmensworld.com",
+    "website": "https://rsmensworld.com",
+    "address": "Main Road, Danavaipeta, Rajahmundry, Andhra Pradesh 533103"
+  },
+  "campaign_settings": {
+    "allow_branch_campaigns": false,
+    "quiet_hours_enabled": true,
+    "quiet_hours_start": "21:00",
+    "quiet_hours_end": "09:00",
+    "default_consent_source": "petpooja_pos"
+  },
+  "whatsapp_connection": {
+    "status": "connected",
+    "phone_number": "+91 98490 12345",
+    "display_name": "RS Mens World Official",
+    "verified": true,
+    "tier": "Tier 2 (50k msgs/day)"
+  },
+  "ai_provider": {
+    "status": "connected",
+    "provider_name": "Anthropic Claude / Google Gemini",
+    "model_name": "Gemini 1.5 Pro & Claude 3.5 Sonnet Hybrid",
+    "guardrail_strictness": "high"
+  }
+}
+```
+
+#### `PATCH /settings`
+Update business identity, quiet hours, or campaign rules.
+- **Access**: Super Admin only (`super_admin`)
+- **Request Body**: Partial `PlatformSettings` JSON.
+- **Response `200 OK`**: Updated `PlatformSettings` object.
+
+#### `POST /settings/reset-demo-data`
+Clear temporary demonstration storage and reseed default factory records for evaluation.
+- **Access**: Super Admin only (`super_admin`)
+- **Response `200 OK`**:
+```json
+{
+  "status": "success",
+  "message": "Demo data restored to initial factory seed"
+}
+```
+
+### 11.2 Audit Log
+
+#### `GET /audit-logs`
+Retrieve tamper-evident event log of administrative, marketing, and customer changes.
+- **Access**: Super Admin only (`super_admin`). Branch users receive 403 Forbidden.
+- **Query Parameters**:
+  - `branch_id` (string, optional)
+  - `action` (string, optional)
+  - `entity` (string, optional)
+  - `search` (string, optional)
+  - `page` (number, default: 1)
+  - `pageSize` (number, default: 20)
+- **Response `200 OK`**:
+```json
+{
+  "items": [
+    {
+      "id": "AUD-901",
+      "user_id": "user_1",
+      "user_name": "Bala (Super Admin)",
+      "user_role": "super_admin",
+      "action": "campaign_send",
+      "entity": "campaigns",
+      "entity_id": "CMP-101",
+      "branch_id": "branch_1",
+      "branch_name": "Rajahmundry Main",
+      "details": "Executed broadcast \"Winter Collection Launch\" targeting 2 branches",
+      "created_at": "2026-11-21T10:15:00.000Z"
+    }
+  ],
+  "total": 7,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 1
+}
+```
+
+### 11.3 Notifications
+
+#### `GET /notifications`
+Retrieve unread alerts for lead follow-ups due, pending AI handovers, campaign completions, and import batch results.
+- **Access**: Authenticated (`super_admin`, `branch_user`)
+- **Branch Rule**: `branch_user` alerts are strictly filtered to their branch.
+- **Response `200 OK`**:
+```json
+[
+  {
+    "id": "notif_lead_L-3801",
+    "title": "Follow-up Due: Rajesh Kumar",
+    "description": "Wedding sherwani inquiry • branch_1",
+    "type": "lead_followup",
+    "read": false,
+    "link": "/leads",
+    "created_at": "2026-11-21T09:30:00.000Z"
+  }
+]
+```
+
+#### `PATCH /notifications/{id}/read`
+Mark a single notification as read.
+- **Access**: Authenticated
+- **Response `200 OK`**: `{ "status": "ok" }`
+

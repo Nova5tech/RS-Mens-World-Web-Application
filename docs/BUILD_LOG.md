@@ -235,3 +235,31 @@
   - Reports for all 4 domains (Campaigns, Customers, Leads, Chats) filter accurately by branch and date range.
   - CSV export downloads clean file with UTF-8 BOM, displaying currency (`₹`) and dates correctly in Excel.
   - TypeScript & Vite build clean (`npm run build` zero errors).
+
+## Phase 9 — Settings, Audit Log, Hardening & Handover
+- **Status**: Completed & Verified
+- **Files Added / Changed**:
+  - `src/features/settings/SettingsPage.tsx`: Full settings console with Business profile (legal name, tagline, support phone, email, website, address), WhatsApp Business Cloud API verified connection status card, Dual AI engine model parameters status card with Knowledge Base quick link, Campaign dispatch & compliance rules (branch campaign authorization toggle, TRAI/DND quiet hours toggle with start/end time pickers, default consent source selector), Demo Environment factory reset card with confirmation modal, and navigation button to Audit Log.
+  - `src/features/settings/AuditLogPage.tsx`: Tamper-evident administrative audit log table (`/settings/audit`) tracking authentication logins, Petpooja imports, WhatsApp campaign dispatches, lead stage transitions, customer conversions, KB edits, and user creation. Features filters (Search, Branch, Action Type, Module) and one-click UTF-8 BOM CSV export.
+  - `src/services/settings.ts`: Platform settings service managing business profile, campaign constraints, AI model metadata, and `resetDemoData()` utility that safely cleans temporary localStorage keys and restores initial seed records.
+  - `src/services/audit.ts`: Audit trail service with initial seed events and `logAction()` recorder for state-changing operations across the system.
+  - `src/services/notifications.ts`: Dynamic notification aggregator synthesising real-time alerts for lead follow-ups due, pending AI chat handovers, completed WhatsApp campaigns, and processed Petpooja import batches with read tracking.
+  - `src/layouts/Topbar.tsx`: Integrated interactive Notifications dropdown with dynamic unread indicator dot, notification items with direct deep-links and mark-read controls; added interactive Help & Operations Guide modal featuring architecture overviews, module workflows, and branch isolation rules.
+  - `src/pages/NotFoundPage.tsx`: Custom branded 404 page matching design system with "Return to Dashboard" action.
+  - `src/components/ErrorBoundary.tsx`: React error boundary preventing blank screen crashes on unexpected runtime exceptions.
+  - `src/app/router.tsx`: Implemented route-level code splitting using `React.lazy` and `Suspense` for all pages, added `/settings/audit` route guarded by `ProtectedRoute adminOnly`, and set catch-all to `NotFoundPage`.
+  - `src/layouts/AppShell.tsx`: Configured dynamic browser tab title updates (`${pageTitle} | RS Mens World CEP`).
+  - `docs/API_CONTRACT.md`: Added Section 11 documenting Settings, Audit Log, and Notification endpoints (`GET/PATCH /settings`, `POST /settings/reset-demo-data`, `GET /audit-logs`, `GET /notifications`, `PATCH /notifications/{id}/read`).
+  - `README.md`: Created comprehensive engineering documentation covering quick start, environment variables, demo login accounts, architecture, folder structure, mock-to-real backend migration instructions, and embeddable website chat widget snippet.
+  - `docs/TEST_CHECKLIST.md`: Created master test checklist verifying all 10 phases and SOW acceptance criteria.
+- **Self-Check Results**:
+  - Settings page allows modifying business profile, quiet hours, and campaign authorization.
+  - Audit log accurately displays security trail with search, filters, and clean CSV export.
+  - Topbar notifications bell displays active count, opens alert popover, navigates to target pages, and marks items as read.
+  - Help (?) button opens detailed modal with quick links to all 5 core modules.
+  - 404 page and Error Boundary render properly.
+  - Route code-splitting produces optimized lazy chunks across all modules.
+  - Document titles update cleanly across navigation.
+  - Handover artifacts (`API_CONTRACT.md`, `README.md`, `TEST_CHECKLIST.md`) complete.
+  - All SOW acceptance criteria verified: Petpooja importer with validation, WhatsApp campaigns with independent branch toggles, zero sends to switched-OFF branches or customers without consent, strict branch tenancy for branch users, grounded AI chatbot with human takeover, lead CRM with customer conversion, and reports matching underlying records.
+  - TypeScript & Vite build clean (`npm run build` zero errors).

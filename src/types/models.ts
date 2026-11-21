@@ -331,3 +331,65 @@ export interface ApiError {
   message: string;
   details?: Array<{ field: string; message: string }>;
 }
+
+// -------------------------------------------------------------
+// AUDIT LOG & SETTINGS (Phase 9)
+// -------------------------------------------------------------
+export interface AuditLog {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_role: UserRole;
+  action:
+    | 'login'
+    | 'import'
+    | 'campaign_send'
+    | 'campaign_schedule'
+    | 'campaign_cancel'
+    | 'lead_stage_change'
+    | 'lead_convert'
+    | 'user_create'
+    | 'user_deactivate'
+    | 'kb_edit'
+    | 'settings_update'
+    | 'demo_reset';
+  entity: 'auth' | 'customers' | 'campaigns' | 'leads' | 'users' | 'kb' | 'settings';
+  entity_id?: string;
+  branch_id?: string;
+  branch_name?: string;
+  details: string;
+  created_at: string;
+}
+
+export interface BusinessProfile {
+  name: string;
+  tagline: string;
+  support_phone: string;
+  support_email: string;
+  website: string;
+  address: string;
+  logo_url?: string;
+}
+
+export interface PlatformSettings {
+  business_profile: BusinessProfile;
+  campaign_settings: CampaignSettings & { default_consent_source: string };
+  chat_settings: ChatSettings;
+  whatsapp_connection: {
+    status: 'connected' | 'disconnected';
+    phone_number: string;
+    display_name: string;
+    verified: boolean;
+    tier: string;
+    last_synced_at: string;
+  };
+  ai_provider: {
+    status: 'connected' | 'error';
+    provider_name: string;
+    model_name: string;
+    guardrail_strictness: 'high' | 'medium';
+    temperature: number;
+    max_tokens: number;
+    last_ping: string;
+  };
+}

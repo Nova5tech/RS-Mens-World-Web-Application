@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
@@ -17,9 +17,12 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/leads': { title: 'Lead Generation', subtitle: 'Track and manage potential customers' },
   '/customers': { title: 'Customer Database', subtitle: 'Manage customers and import from Petpooja' },
   '/campaigns': { title: 'WhatsApp Campaigns', subtitle: 'Create and run targeted WhatsApp broadcasts' },
+  '/content': { title: 'Content Library', subtitle: 'Media assets, WhatsApp templates, and segments' },
   '/reports': { title: 'Reports & Analytics', subtitle: 'Insights on customers, campaigns, leads and chat' },
+  '/users': { title: 'Users & Branches', subtitle: 'Manage store branches and staff user accounts' },
   '/users-branches': { title: 'Users & Branches', subtitle: 'Manage store branches and staff user accounts' },
   '/settings': { title: 'Settings', subtitle: 'Platform configurations, integrations and preferences' },
+  '/settings/audit': { title: 'Audit Log', subtitle: 'Security audit trail of user and system events' },
 };
 
 export const AppShell: React.FC = () => {
@@ -30,6 +33,10 @@ export const AppShell: React.FC = () => {
     title: 'RS Mens World',
     subtitle: 'Customer Engagement Platform',
   };
+
+  useEffect(() => {
+    document.title = `${currentMeta.title} | RS Mens World CEP`;
+  }, [currentMeta.title]);
 
   return (
     <div className="min-h-screen bg-page-bg flex">
